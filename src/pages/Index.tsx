@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Brain, MessageCircle, Shield, Heart, Users, Clock, Star } from "lucide-react";
+import { Brain, MessageCircle, Shield, Heart, Users, Clock, Star, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 const stats = [
   { icon: Users, value: "10k+", label: "Active Users" },
