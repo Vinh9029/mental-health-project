@@ -71,6 +71,20 @@ export default function Auth() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result?.error) throw result.error;
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       {/* Logo link */}
