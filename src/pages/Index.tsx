@@ -43,6 +43,8 @@ const fadeUp = {
 };
 
 export default function Index() {
+  const { user, signOut } = useAuth();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar */}
@@ -61,6 +63,15 @@ export default function Index() {
             <Button variant="hero" size="sm" asChild>
               <Link to="/screening">Start Screening</Link>
             </Button>
+            {user ? (
+              <Button variant="ghost" size="sm" onClick={signOut}>
+                <LogOut className="h-4 w-4 mr-1" /> Sign Out
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/auth">Sign In</Link>
+              </Button>
+            )}
           </div>
         </div>
       </nav>
