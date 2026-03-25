@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Brain, MessageCircle, Shield, Heart, Users, Clock, Star } from "lucide-react";
+import { Brain, MessageCircle, Shield, Heart, Users, Clock, Star, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 const stats = [
   { icon: Users, value: "10k+", label: "Active Users" },
@@ -42,6 +43,8 @@ const fadeUp = {
 };
 
 export default function Index() {
+  const { user, signOut } = useAuth();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar */}
@@ -60,6 +63,15 @@ export default function Index() {
             <Button variant="hero" size="sm" asChild>
               <Link to="/screening">Start Screening</Link>
             </Button>
+            {user ? (
+              <Button variant="ghost" size="sm" onClick={signOut}>
+                <LogOut className="h-4 w-4 mr-1" /> Sign Out
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/auth">Sign In</Link>
+              </Button>
+            )}
           </div>
         </div>
       </nav>
@@ -73,8 +85,8 @@ export default function Index() {
             transition={{ duration: 0.6 }}
             className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight"
           >
-            Your Journey to Mental Wellness{" "}
-            <span className="bg-clip-text text-transparent hero-gradient">Starts Here</span>
+            Your Journey to Mental Wellness Starts{" "}
+            <span className="inline-block text-primary">Here</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
