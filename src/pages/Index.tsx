@@ -73,8 +73,8 @@ export default function Index() {
             transition={{ duration: 0.6 }}
             className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight"
           >
-            Your Journey to Mental Wellness{" "}
-            <span className="bg-clip-text text-transparent hero-gradient">Starts Here</span>
+            Your Journey to Mental Wellness Starts{" "}
+            <span className="inline-block text-primary">Here</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
