@@ -1,0 +1,70 @@
+import { create } from 'zustand';
+
+export type SeverityLevel = 'Normal' | 'Mild' | 'Moderate' | 'Severe';
+export type PrimaryIssue = 'Depression' | 'Anxiety' | 'None';
+
+interface AssessmentResult {
+  phq9Score: number;
+  gad7Score: number;
+  phq9Severity: SeverityLevel;
+  gad7Severity: SeverityLevel;
+  overallBaseline: SeverityLevel;
+  primaryIssue: PrimaryIssue;
+}
+
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
+interface AppState {
+  assessmentResult: AssessmentResult | null;
+  chatMessages: ChatMessage[];
+  setAssessmentResult: (result: AssessmentResult) => void;
+  addChatMessage: (msg: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
+  clearChat: () => void;
+}
+
+function getSeverity(score: number): SeverityLevel {
+  if (score <= 4) return 'Normal';
+  if (score <= 9) return 'Mild';
+  if (score <= 14) return 'Moderate';
+  return 'Severe';
+}
+
+const severityRank: Record<SeverityLevel, number> = {
+  Normal: 0, Mild: 1, Moderate: 2, Severe: 3,
+};
+
+export function calculateBaseline(phq9Scores: number[], gad7Scores: number[]): AssessmentResult {
+  const phq9Score = phq9Scores.reduce((a, b) => a + b, 0);
+  const gad7Score = gad7Scores.reduce((a, b) => a + b, 0);
+  const phq9Severity = getSeverity(phq9Score);
+  const gad7Severity = getSeverity(gad7Score);
+
+  const overallBaseline = severityRank[phq9Severity] >= severityRank[gad7Severity]
+    ? phq9Severity : gad7Severity;
+
+  let primaryIssue: PrimaryIssue = 'None';
+  if (severityRank[phq9Severity] > severityRank[gad7Severity]) primaryIssue = 'Depression';
+  else if (severityRank[gad7Severity] > severityRank[phq9Severity]) primaryIssue = 'Anxiety';
+  else if (phq9Score > 4 || gad7Score > 4) primaryIssue = phq9Score >= gad7Score ? 'Depression' : 'Anxiety';
+
+  return { phq9Score, gad7Score, phq9Severity, gad7Severity, overallBaseline, primaryIssue };
+}
+
+export const useAppStore = create<AppState>((set) => ({
+  assessmentResult: null,
+  chatMessages: [],
+  setAssessmentResult: (result) => set({ assessmentResult: result }),
+  addChatMessage: (msg) =>
+    set((state) => ({
+      chatMessages: [
+        ...state.chatMessages,
+        { ...msg, id: crypto.randomUUID(), timestamp: new Date() },
+      ],
+    })),
+  clearChat: () => set({ chatMessages: [] }),
+}));
