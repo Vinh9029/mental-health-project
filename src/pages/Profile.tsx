@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Brain, User, Shield, Heart, Sparkles, Save } from "lucide-react";
+import { User, Shield, Heart, Sparkles, Save, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useTheme } from "@/components/ThemeProvider";
+import Navbar from "@/components/Navbar";
 
 const AVATARS = [
   { id: "avatar-calm", label: "Calm Cloud", emoji: "☁️" },
@@ -27,6 +30,7 @@ const severityColor: Record<string, string> = {
 
 export default function Profile() {
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [nickname, setNickname] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState("avatar-calm");
   const [baselineLevel, setBaselineLevel] = useState("Normal");
@@ -109,20 +113,7 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
-        <div className="container mx-auto flex items-center justify-between h-16 px-4">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-lg hero-gradient flex items-center justify-center">
-              <Brain className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-heading text-xl font-semibold text-foreground">MindCare AI</span>
-          </Link>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" asChild><Link to="/chat">Chat</Link></Button>
-            <Button variant="ghost" size="sm" asChild><Link to="/screening">Screening</Link></Button>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <div className="pt-24 pb-16 px-4">
         <div className="container mx-auto max-w-2xl space-y-8">
@@ -231,6 +222,29 @@ export default function Profile() {
                 No coping methods recorded yet. Keep chatting with MindCare AI and your preferences will be tracked over time.
               </p>
             )}
+          </motion.div>
+
+          {/* Theme Toggle */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+            className="bg-card rounded-2xl p-6 card-elevated"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {theme === "dark" ? (
+                  <Moon className="h-5 w-5 text-primary" />
+                ) : (
+                  <Sun className="h-5 w-5 text-primary" />
+                )}
+                <div>
+                  <h2 className="font-heading text-lg font-semibold text-card-foreground">Appearance</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {theme === "dark" ? "Dark mode is on" : "Light mode is on"}
+                  </p>
+                </div>
+              </div>
+              <Switch checked={theme === "dark"} onCheckedChange={toggleTheme} />
+            </div>
           </motion.div>
         </div>
       </div>

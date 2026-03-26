@@ -4,6 +4,12 @@ import { Brain, MessageCircle, Shield, Heart, Users, Clock, Star } from "lucide-
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 
+import mentalHealth1 from "@/assets/mental-health-1.jpg";
+import mentalHealth2 from "@/assets/mental-health-2.jpg";
+import mentalHealth3 from "@/assets/mental-health-3.jpg";
+import mentalHealth4 from "@/assets/mental-health-4.jpg";
+import mentalHealth5 from "@/assets/mental-health-5.jpg";
+
 const stats = [
   { icon: Users, value: "10k+", label: "Active Users" },
   { icon: Star, value: "95%", label: "Satisfaction" },
@@ -33,6 +39,14 @@ const features = [
   },
 ];
 
+const galleryImages = [
+  { src: mentalHealth1, alt: "Mindfulness meditation in nature", caption: "Mindfulness & Meditation" },
+  { src: mentalHealth2, alt: "Supportive therapy conversation", caption: "Professional Support" },
+  { src: mentalHealth3, alt: "Brain wellness with nature elements", caption: "Brain Wellness" },
+  { src: mentalHealth4, alt: "Self-care and journaling", caption: "Self-Care Rituals" },
+  { src: mentalHealth5, alt: "Community mental health support", caption: "Community & Connection" },
+];
+
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
   visible: (i: number) => ({
@@ -56,8 +70,9 @@ export default function Index() {
             transition={{ duration: 0.6 }}
             className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight"
           >
-            Your Journey to Mental Wellness Starts{" "}
-            <span className="inline-block text-primary">Here</span>
+            Your Journey to{" "}
+            <span className="inline-block text-primary">Mental Wellness</span>{" "}
+            Starts Here
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -107,6 +122,46 @@ export default function Index() {
                 </div>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Gallery Widget */}
+      <section className="py-16 px-4 overflow-hidden">
+        <div className="container mx-auto max-w-5xl">
+          <motion.h2
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-3xl sm:text-4xl font-heading font-bold text-center text-foreground mb-10"
+          >
+            Wellness in Every Moment
+          </motion.h2>
+          <div className="relative">
+            <motion.div
+              className="flex gap-5"
+              animate={{ x: [0, -1200, 0] }}
+              transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+            >
+              {[...galleryImages, ...galleryImages].map((img, i) => (
+                <div key={i} className="shrink-0 w-64 group">
+                  <div className="relative overflow-hidden rounded-2xl card-elevated">
+                    <img
+                      src={img.src}
+                      alt={img.alt}
+                      loading="lazy"
+                      width={640}
+                      height={512}
+                      className="w-full h-44 object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <p className="absolute bottom-3 left-3 right-3 text-sm font-medium text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      {img.caption}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </motion.div>
           </div>
         </div>
       </section>
