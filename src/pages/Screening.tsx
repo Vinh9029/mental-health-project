@@ -31,40 +31,137 @@ const gad7Questions = [
   "Feeling afraid, as if something awful might happen",
 ];
 
-// ── Follow-up Questions Pool (Sentiment Analysis / NLP Label) ──
-// These open-ended questions are selected based on baseline scores.
-// The response text will be passed to a sentiment analysis model (TODO).
+// ── Follow-up Questions Pool (Conversation Questions) ──
+// Selected based on baseline severity from PHQ-9/GAD-7 scores.
+// Text responses will be passed to a sentiment/NLP model for label assignment.
+// Labels: Anxiety(0), Bipolar(1), Depression(2), Normal(3), Personality Disorder(4), Stress(5), Suicidal(6)
 
-const followUpByCategory: Record<string, string[]> = {
-  depression: [
-    "Can you describe a recent moment when you felt particularly low or unmotivated?",
-    "How do your daily routines change when you feel down?",
-    "What thoughts tend to come up most when you feel hopeless?",
-    "How has your relationship with food or sleep changed recently?",
-    "Describe a situation this week that made you feel worthless or guilty.",
-    "When you feel depressed, what do you usually do to cope?",
-  ],
-  anxiety: [
-    "Can you describe what your worry feels like physically in your body?",
-    "What specific situations trigger your anxiety the most?",
-    "How does your anxiety affect your ability to concentrate or make decisions?",
-    "Describe a recent event that made you feel nervous or on edge.",
-    "When you feel anxious, what coping strategies do you try?",
-    "How often do you avoid situations because of worry or fear?",
-  ],
-  general: [
-    "How would you describe your overall mood in the past week?",
-    "What activities bring you the most comfort or relief?",
-    "How well do you feel supported by the people around you?",
-    "Describe how stress has affected your daily life recently.",
-    "What does a good day look like for you right now?",
-    "How do you usually handle difficult emotions?",
-  ],
+const CONVERSATION_QUESTIONS: Record<string, Record<string, string[]>> = {
+  Depression: {
+    Normal: [
+      "That's great to hear! What activities bring you the most joy lately?",
+      "How are your sleep and energy levels these days?",
+      "Tell me about your typical day - what keeps you occupied?",
+      "Do you have people you can talk to when feeling down?",
+      "What's one thing that made you smile recently?",
+    ],
+    Mild: [
+      "You mentioned feeling a bit low. When did this feeling start?",
+      "How does this depression affect your daily activities like work or hobbies?",
+      "Have you noticed changes in your sleep or appetite?",
+      "What usually helps you feel a bit better?",
+      "Do you find it hard to concentrate or make decisions?",
+      "How's your energy level - do you feel tired a lot?",
+      "Have you lost interest in things you usually enjoy?",
+    ],
+    Moderate: [
+      "I can sense you're going through a tough time. How long have you felt this way?",
+      "How is this affecting your ability to work or study?",
+      "Have your sleep patterns changed significantly?",
+      "Do you have support from family or friends right now?",
+      "Have you thought about talking to a therapist or counselor?",
+      "What was the trigger or when did this start?",
+      "How are you coping with these feelings day-to-day?",
+      "Have you experienced loss of appetite or significant weight change?",
+    ],
+    Severe: [
+      "I'm concerned about what you're sharing. Do you have thoughts of harming yourself?",
+      "Is there someone close to you - family, friend, doctor - you can reach out to?",
+      "Have you considered professional help or therapy?",
+      "How long have you been experiencing these severe feelings?",
+      "Is there anything - even small - that brings you some comfort?",
+      "Do you have a crisis hotline number you can call if things get worse?",
+      "Have you tried any coping strategies that help, even temporarily?",
+    ],
+  },
+  Anxiety: {
+    Normal: [
+      "That's wonderful that you're managing well! What's your secret?",
+      "How do you typically handle stressful situations?",
+      "What activities help you stay calm and grounded?",
+      "Tell me about a time you felt completely relaxed recently.",
+      "How are your relationships and social life?",
+    ],
+    Mild: [
+      "You mentioned some anxiety. When does it typically show up?",
+      "What situations tend to trigger your anxious feelings?",
+      "How do you usually cope when anxiety kicks in?",
+      "Have you tried any relaxation techniques like breathing exercises?",
+      "Does the anxiety affect your sleep or concentration?",
+      "How often would you say you feel worried?",
+      "What's usually on your mind when you're feeling anxious?",
+    ],
+    Moderate: [
+      "I hear that anxiety is affecting your daily life. What's been the hardest part?",
+      "Can you describe a typical anxiety episode for me?",
+      "How long does it usually last and how often does it happen?",
+      "What physical symptoms do you experience (racing heart, sweating, etc)?",
+      "Have you tried any strategies to manage these feelings?",
+      "Is there a specific time of day when anxiety is worse?",
+      "How's this impacting your work, relationships, or activities?",
+      "Have you considered speaking with a mental health professional?",
+    ],
+    Severe: [
+      "I'm hearing that anxiety is really overwhelming you. How are you holding up?",
+      "Do you have panic attacks? Can you describe what they're like?",
+      "Is the anxiety preventing you from doing everyday activities?",
+      "Do you have support - family, friends, or professional help?",
+      "Have you been to a doctor or therapist about this?",
+      "What helps even slightly - is there anything that provides relief?",
+      "Are there days when it feels completely unmanageable?",
+    ],
+  },
 };
+
+const GENERIC_QUESTIONS = [
+  "Tell me a bit more about what's been on your mind lately.",
+  "How have you been coping with everything?",
+  "Is there anything positive happening in your life right now?",
+  "Have you talked to anyone about how you're feeling?",
+  "What would help you feel better right now?",
+  "How's your support system - do you have people you can talk to?",
+  "What's one thing you'd like to improve or change?",
+  "When was the last time you felt genuinely happy or at peace?",
+];
+
+const HIGH_RISK_QUESTIONS = [
+  "Have you had thoughts of harming yourself or ending your life?",
+  "Do you have someone you can reach out to immediately if things get worse?",
+  "Are you currently under the care of a mental health professional?",
+];
 
 function pickRandomQuestions(pool: string[], count: number): string[] {
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
+}
+
+function getFollowUpQuestions(phq9Score: number, gad7Score: number): string[] {
+  const phq9Sev = phq9Score <= 4 ? "Normal" : phq9Score <= 9 ? "Mild" : phq9Score <= 14 ? "Moderate" : "Severe";
+  const gad7Sev = gad7Score <= 4 ? "Normal" : gad7Score <= 9 ? "Mild" : gad7Score <= 14 ? "Moderate" : "Severe";
+
+  // For severe cases, include a high-risk question
+  if (phq9Sev === "Severe" || gad7Sev === "Severe") {
+    const primaryPool = phq9Score >= gad7Score
+      ? CONVERSATION_QUESTIONS.Depression.Severe
+      : CONVERSATION_QUESTIONS.Anxiety.Severe;
+    return [...pickRandomQuestions(primaryPool, 2), ...pickRandomQuestions(HIGH_RISK_QUESTIONS, 1)];
+  }
+
+  // Determine primary issue and severity
+  let pool: string[];
+  if (phq9Score > gad7Score && phq9Score > 4) {
+    pool = CONVERSATION_QUESTIONS.Depression[phq9Sev];
+  } else if (gad7Score > phq9Score && gad7Score > 4) {
+    pool = CONVERSATION_QUESTIONS.Anxiety[gad7Sev];
+  } else if (phq9Score > 4) {
+    pool = CONVERSATION_QUESTIONS.Depression[phq9Sev];
+  } else if (gad7Score > 4) {
+    pool = CONVERSATION_QUESTIONS.Anxiety[gad7Sev];
+  } else {
+    pool = GENERIC_QUESTIONS;
+  }
+
+  return pickRandomQuestions(pool, 3);
 }
 
 const standardQuestions = [
@@ -89,20 +186,14 @@ export default function Screening() {
   const setAssessmentResult = useAppStore((s) => s.setAssessmentResult);
   const assessmentResult = useAppStore((s) => s.assessmentResult);
 
-  // Generate follow-up questions after scale phase completes
+  // Generate follow-up questions based on severity after scale phase
   const followUpQuestions = useMemo(() => {
     if (phase !== "followup" && phase !== "results") return [];
     const phq9 = scaleAnswers.slice(0, 9) as number[];
     const gad7 = scaleAnswers.slice(9) as number[];
     const phq9Score = phq9.reduce((a, b) => a + b, 0);
     const gad7Score = gad7.reduce((a, b) => a + b, 0);
-
-    let category = "general";
-    if (phq9Score > gad7Score && phq9Score > 4) category = "depression";
-    else if (gad7Score > phq9Score && gad7Score > 4) category = "anxiety";
-    else if (phq9Score > 4 || gad7Score > 4) category = phq9Score >= gad7Score ? "depression" : "anxiety";
-
-    return pickRandomQuestions(followUpByCategory[category], 3);
+    return getFollowUpQuestions(phq9Score, gad7Score);
   }, [phase, scaleAnswers]);
 
   const current = phase === "scales" ? standardQuestions[currentIndex] : null;

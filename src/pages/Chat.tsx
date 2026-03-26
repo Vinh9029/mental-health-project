@@ -6,10 +6,13 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAppStore } from "@/store/useAppStore";
 import { classifyText, getMockChatResponse } from "@/lib/chatUtils";
 import { useReassessment } from "@/hooks/useReassessment";
 import ReassessmentBanner from "@/components/ReassessmentBanner";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const quickReplies = [
   "I'm feeling anxious",
@@ -47,9 +50,23 @@ const selfCareTools = [
 export default function Chat() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [userAvatar, setUserAvatar] = useState("🙂");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { chatMessages, addChatMessage, assessmentResult } = useAppStore();
   const { showReassessment, nickname, dismiss: dismissReassessment } = useReassessment();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.avatar_url) setUserAvatar(data.avatar_url);
+      });
+  }, [user]);
 
   useEffect(() => {
     if (chatMessages.length === 0) {
@@ -124,10 +141,17 @@ export default function Chat() {
                     key={msg.id}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                    className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                   >
+                    {msg.role === "assistant" && (
+                      <Avatar className="h-8 w-8 shrink-0 mt-1">
+                        <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                          <Brain className="h-4 w-4" />
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
                     <div
-                      className={`max-w-[80%] rounded-2xl px-5 py-3 text-sm leading-relaxed ${
+                      className={`max-w-[75%] rounded-2xl px-5 py-3 text-sm leading-relaxed ${
                         msg.role === "user"
                           ? "hero-gradient text-primary-foreground rounded-br-md"
                           : "bg-card border text-card-foreground rounded-bl-md card-elevated"
@@ -141,11 +165,23 @@ export default function Chat() {
                         msg.content
                       )}
                     </div>
+                    {msg.role === "user" && (
+                      <Avatar className="h-8 w-8 shrink-0 mt-1">
+                        <AvatarFallback className="bg-secondary text-base">
+                          {userAvatar}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
                   </motion.div>
                 ))}
               </AnimatePresence>
               {isLoading && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3 justify-start">
+                  <Avatar className="h-8 w-8 shrink-0 mt-1">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                      <Brain className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="bg-card border rounded-2xl rounded-bl-md px-5 py-3 card-elevated">
                     <div className="flex gap-1">
                       <span className="h-2 w-2 rounded-full bg-primary animate-pulse-gentle" />
