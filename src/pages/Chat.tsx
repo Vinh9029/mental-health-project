@@ -50,9 +50,23 @@ const selfCareTools = [
 export default function Chat() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [userAvatar, setUserAvatar] = useState("🙂");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { chatMessages, addChatMessage, assessmentResult } = useAppStore();
   const { showReassessment, nickname, dismiss: dismissReassessment } = useReassessment();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.avatar_url) setUserAvatar(data.avatar_url);
+      });
+  }, [user]);
 
   useEffect(() => {
     if (chatMessages.length === 0) {
