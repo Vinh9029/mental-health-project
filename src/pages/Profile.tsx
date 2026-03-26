@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useTheme } from "@/components/ThemeProvider";
+import Navbar from "@/components/Navbar";
 
 const AVATARS = [
   { id: "avatar-calm", label: "Calm Cloud", emoji: "☁️" },
