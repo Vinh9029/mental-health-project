@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Brain, ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { calculateBaseline, useAppStore } from "@/store/useAppStore";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const phq9Questions = [
   "Little interest or pleasure in doing things",
@@ -44,6 +46,7 @@ export default function Screening() {
   const [answers, setAnswers] = useState<(number | null)[]>(Array(16).fill(null));
   const [showResults, setShowResults] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
   const setAssessmentResult = useAppStore((s) => s.setAssessmentResult);
   const assessmentResult = useAppStore((s) => s.assessmentResult);
 
@@ -60,12 +63,24 @@ export default function Screening() {
     }
   };
 
-  const submit = () => {
+  const submit = async () => {
     const phq9 = answers.slice(0, 9) as number[];
     const gad7 = answers.slice(9) as number[];
     const result = calculateBaseline(phq9, gad7);
     setAssessmentResult(result);
     setShowResults(true);
+
+    // Save baseline to DB if logged in
+    if (user) {
+      await supabase
+        .from("profiles")
+        .update({
+          baseline_level: result.overallBaseline,
+          primary_issue: result.primaryIssue,
+          last_assessment_date: new Date().toISOString(),
+        } as any)
+        .eq("user_id", user.id);
+    }
   };
 
   const severityColor: Record<string, string> = {

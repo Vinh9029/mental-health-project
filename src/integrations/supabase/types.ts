@@ -14,31 +14,94 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          messages: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           activated: boolean
           avatar_url: string | null
+          baseline_level: string | null
           created_at: string
           display_name: string | null
           id: string
+          last_assessment_date: string | null
+          nickname: string | null
+          primary_issue: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           activated?: boolean
           avatar_url?: string | null
+          baseline_level?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          last_assessment_date?: string | null
+          nickname?: string | null
+          primary_issue?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           activated?: boolean
           avatar_url?: string | null
+          baseline_level?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          last_assessment_date?: string | null
+          nickname?: string | null
+          primary_issue?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_states: {
+        Row: {
+          created_at: string
+          extracted_insights: Json | null
+          id: string
+          preferred_coping_methods: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          extracted_insights?: Json | null
+          id?: string
+          preferred_coping_methods?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          extracted_insights?: Json | null
+          id?: string
+          preferred_coping_methods?: string[] | null
           updated_at?: string
           user_id?: string
         }
