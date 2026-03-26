@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MessageCircle, Shield, Heart, Users, Clock, Star } from "lucide-react";
+import { Brain, MessageCircle, Shield, Heart, Users, Clock, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 
