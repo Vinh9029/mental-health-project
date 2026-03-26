@@ -8,6 +8,8 @@ import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/store/useAppStore";
 import { classifyText, getMockChatResponse } from "@/lib/chatUtils";
+import { useReassessment } from "@/hooks/useReassessment";
+import ReassessmentBanner from "@/components/ReassessmentBanner";
 
 const quickReplies = [
   "I'm feeling anxious",
@@ -47,6 +49,7 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { chatMessages, addChatMessage, assessmentResult } = useAppStore();
+  const { showReassessment, nickname, dismiss: dismissReassessment } = useReassessment();
 
   useEffect(() => {
     if (chatMessages.length === 0) {
@@ -155,6 +158,11 @@ export default function Chat() {
               <div ref={messagesEndRef} />
             </div>
           </div>
+
+          {/* Re-assessment banner */}
+          {showReassessment && (
+            <ReassessmentBanner nickname={nickname} onDismiss={dismissReassessment} />
+          )}
 
           {/* Quick replies + Input */}
           <div className="shrink-0 border-t bg-background px-4 py-3">
