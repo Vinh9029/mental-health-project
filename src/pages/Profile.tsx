@@ -112,20 +112,7 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
-        <div className="container mx-auto flex items-center justify-between h-16 px-4">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-lg hero-gradient flex items-center justify-center">
-              <Brain className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-heading text-xl font-semibold text-foreground">MindCare AI</span>
-          </Link>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" asChild><Link to="/chat">Chat</Link></Button>
-            <Button variant="ghost" size="sm" asChild><Link to="/screening">Screening</Link></Button>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <div className="pt-24 pb-16 px-4">
         <div className="container mx-auto max-w-2xl space-y-8">
