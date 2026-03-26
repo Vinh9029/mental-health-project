@@ -1,12 +1,14 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Brain, ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { calculateBaseline, useAppStore } from "@/store/useAppStore";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import Navbar from "@/components/Navbar";
 
+// ── Standard PHQ-9 & GAD-7 Questions ──
 const phq9Questions = [
   "Little interest or pleasure in doing things",
   "Feeling down, depressed, or hopeless",
@@ -29,12 +31,48 @@ const gad7Questions = [
   "Feeling afraid, as if something awful might happen",
 ];
 
-const allQuestions = [
-  ...phq9Questions.map((q) => ({ text: q, group: "PHQ-9" as const })),
-  ...gad7Questions.map((q) => ({ text: q, group: "GAD-7" as const })),
+// ── Follow-up Questions Pool (Sentiment Analysis / NLP Label) ──
+// These open-ended questions are selected based on baseline scores.
+// The response text will be passed to a sentiment analysis model (TODO).
+
+const followUpByCategory: Record<string, string[]> = {
+  depression: [
+    "Can you describe a recent moment when you felt particularly low or unmotivated?",
+    "How do your daily routines change when you feel down?",
+    "What thoughts tend to come up most when you feel hopeless?",
+    "How has your relationship with food or sleep changed recently?",
+    "Describe a situation this week that made you feel worthless or guilty.",
+    "When you feel depressed, what do you usually do to cope?",
+  ],
+  anxiety: [
+    "Can you describe what your worry feels like physically in your body?",
+    "What specific situations trigger your anxiety the most?",
+    "How does your anxiety affect your ability to concentrate or make decisions?",
+    "Describe a recent event that made you feel nervous or on edge.",
+    "When you feel anxious, what coping strategies do you try?",
+    "How often do you avoid situations because of worry or fear?",
+  ],
+  general: [
+    "How would you describe your overall mood in the past week?",
+    "What activities bring you the most comfort or relief?",
+    "How well do you feel supported by the people around you?",
+    "Describe how stress has affected your daily life recently.",
+    "What does a good day look like for you right now?",
+    "How do you usually handle difficult emotions?",
+  ],
+};
+
+function pickRandomQuestions(pool: string[], count: number): string[] {
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}
+
+const standardQuestions = [
+  ...phq9Questions.map((q) => ({ text: q, group: "PHQ-9" as const, type: "scale" as const })),
+  ...gad7Questions.map((q) => ({ text: q, group: "GAD-7" as const, type: "scale" as const })),
 ];
 
-const options = [
+const scaleOptions = [
   { label: "Not at all", value: 0 },
   { label: "Several days", value: 1 },
   { label: "More than half the days", value: 2 },
@@ -43,34 +81,63 @@ const options = [
 
 export default function Screening() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<(number | null)[]>(Array(16).fill(null));
-  const [showResults, setShowResults] = useState(false);
+  const [scaleAnswers, setScaleAnswers] = useState<(number | null)[]>(Array(16).fill(null));
+  const [textAnswers, setTextAnswers] = useState<string[]>(["", "", ""]);
+  const [phase, setPhase] = useState<"scales" | "followup" | "results">("scales");
   const navigate = useNavigate();
   const { user } = useAuth();
   const setAssessmentResult = useAppStore((s) => s.setAssessmentResult);
   const assessmentResult = useAppStore((s) => s.assessmentResult);
 
-  const current = allQuestions[currentIndex];
-  const progress = ((currentIndex + 1) / allQuestions.length) * 100;
-  const allAnswered = answers.every((a) => a !== null);
+  // Generate follow-up questions after scale phase completes
+  const followUpQuestions = useMemo(() => {
+    if (phase !== "followup" && phase !== "results") return [];
+    const phq9 = scaleAnswers.slice(0, 9) as number[];
+    const gad7 = scaleAnswers.slice(9) as number[];
+    const phq9Score = phq9.reduce((a, b) => a + b, 0);
+    const gad7Score = gad7.reduce((a, b) => a + b, 0);
 
-  const select = (value: number) => {
-    const next = [...answers];
+    let category = "general";
+    if (phq9Score > gad7Score && phq9Score > 4) category = "depression";
+    else if (gad7Score > phq9Score && gad7Score > 4) category = "anxiety";
+    else if (phq9Score > 4 || gad7Score > 4) category = phq9Score >= gad7Score ? "depression" : "anxiety";
+
+    return pickRandomQuestions(followUpByCategory[category], 3);
+  }, [phase, scaleAnswers]);
+
+  const current = phase === "scales" ? standardQuestions[currentIndex] : null;
+  const totalScaleQuestions = standardQuestions.length;
+  const allScaleAnswered = scaleAnswers.every((a) => a !== null);
+
+  const selectScale = (value: number) => {
+    const next = [...scaleAnswers];
     next[currentIndex] = value;
-    setAnswers(next);
-    if (currentIndex < allQuestions.length - 1) {
+    setScaleAnswers(next);
+    if (currentIndex < totalScaleQuestions - 1) {
       setTimeout(() => setCurrentIndex((i) => i + 1), 250);
     }
   };
 
+  const goToFollowUp = () => {
+    setPhase("followup");
+    setCurrentIndex(0);
+  };
+
   const submit = async () => {
-    const phq9 = answers.slice(0, 9) as number[];
-    const gad7 = answers.slice(9) as number[];
+    const phq9 = scaleAnswers.slice(0, 9) as number[];
+    const gad7 = scaleAnswers.slice(9) as number[];
     const result = calculateBaseline(phq9, gad7);
     setAssessmentResult(result);
-    setShowResults(true);
+    setPhase("results");
 
-    // Save baseline to DB if logged in
+    // TODO: Send textAnswers to sentiment analysis model
+    // The follow-up text responses should be classified using an NLP model
+    // to assign a label (e.g., "Depressive", "Anxious", "Stressed", "Normal")
+    // which updates the user's profile.
+    // Example:
+    // const sentimentLabels = await classifySentiment(textAnswers);
+    // await updateUserProfile(user.id, sentimentLabels);
+
     if (user) {
       await supabase
         .from("profiles")
@@ -90,29 +157,25 @@ export default function Screening() {
     Severe: "text-destructive",
   };
 
+  // Progress calculation
+  const totalSteps = totalScaleQuestions + 3;
+  const currentStep = phase === "scales" ? currentIndex + 1 : totalScaleQuestions + currentIndex + 1;
+  const progress = (currentStep / totalSteps) * 100;
+  const groupLabel = phase === "scales" ? current?.group + " Assessment" : "Follow-up Questions";
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
-        <div className="container mx-auto flex items-center justify-between h-16 px-4">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-lg hero-gradient flex items-center justify-center">
-              <Brain className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-heading text-xl font-semibold text-foreground">MindCare AI</span>
-          </Link>
-        </div>
-      </nav>
+      <Navbar />
 
       <div className="pt-24 pb-16 px-4">
         <div className="container mx-auto max-w-2xl">
-          {!showResults ? (
+          {phase === "scales" && (
             <>
               {/* Progress */}
               <div className="mb-8">
                 <div className="flex justify-between text-sm text-muted-foreground mb-2">
-                  <span>{current.group} Assessment</span>
-                  <span>{currentIndex + 1} / {allQuestions.length}</span>
+                  <span>{groupLabel}</span>
+                  <span>{currentStep} / {totalSteps}</span>
                 </div>
                 <div className="h-2 rounded-full bg-secondary overflow-hidden">
                   <motion.div
@@ -123,7 +186,7 @@ export default function Screening() {
                 </div>
               </div>
 
-              {/* Question */}
+              {/* Scale Question */}
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentIndex}
@@ -137,15 +200,15 @@ export default function Screening() {
                     Over the last 2 weeks, how often have you been bothered by:
                   </p>
                   <h2 className="font-heading text-xl font-semibold text-card-foreground mb-8">
-                    {current.text}
+                    {current?.text}
                   </h2>
                   <div className="grid gap-3">
-                    {options.map((opt) => (
+                    {scaleOptions.map((opt) => (
                       <button
                         key={opt.value}
-                        onClick={() => select(opt.value)}
+                        onClick={() => selectScale(opt.value)}
                         className={`w-full text-left px-5 py-4 rounded-xl border-2 transition-all duration-200 ${
-                          answers[currentIndex] === opt.value
+                          scaleAnswers[currentIndex] === opt.value
                             ? "border-primary bg-primary/5 text-foreground"
                             : "border-border hover:border-primary/40 text-muted-foreground hover:text-foreground"
                         }`}
@@ -167,22 +230,104 @@ export default function Screening() {
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" /> Previous
                 </Button>
-                {currentIndex === allQuestions.length - 1 && allAnswered ? (
-                  <Button variant="hero" onClick={submit}>
-                    Submit Assessment <CheckCircle className="h-4 w-4 ml-1" />
+                {currentIndex === totalScaleQuestions - 1 && allScaleAnswered ? (
+                  <Button variant="hero" onClick={goToFollowUp}>
+                    Continue <ChevronRight className="h-4 w-4 ml-1" />
                   </Button>
                 ) : (
                   <Button
                     variant="ghost"
-                    onClick={() => setCurrentIndex((i) => Math.min(allQuestions.length - 1, i + 1))}
-                    disabled={answers[currentIndex] === null}
+                    onClick={() => setCurrentIndex((i) => Math.min(totalScaleQuestions - 1, i + 1))}
+                    disabled={scaleAnswers[currentIndex] === null}
                   >
                     Next <ChevronRight className="h-4 w-4 ml-1" />
                   </Button>
                 )}
               </div>
             </>
-          ) : assessmentResult ? (
+          )}
+
+          {phase === "followup" && (
+            <>
+              {/* Progress */}
+              <div className="mb-8">
+                <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                  <span>{groupLabel}</span>
+                  <span>{currentStep} / {totalSteps}</span>
+                </div>
+                <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                  <motion.div
+                    className="h-full hero-gradient rounded-full"
+                    animate={{ width: `${progress}%` }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </div>
+              </div>
+
+              {/* Follow-up Text Question */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`followup-${currentIndex}`}
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -30 }}
+                  transition={{ duration: 0.25 }}
+                  className="bg-card rounded-2xl p-8 card-elevated"
+                >
+                  <p className="text-xs font-medium text-primary mb-3 uppercase tracking-wider">
+                    Tell us more about how you feel
+                  </p>
+                  <h2 className="font-heading text-xl font-semibold text-card-foreground mb-6">
+                    {followUpQuestions[currentIndex]}
+                  </h2>
+                  <textarea
+                    value={textAnswers[currentIndex]}
+                    onChange={(e) => {
+                      const next = [...textAnswers];
+                      next[currentIndex] = e.target.value;
+                      setTextAnswers(next);
+                    }}
+                    placeholder="Share your thoughts here... (your response will be analyzed to personalize your experience)"
+                    className="w-full min-h-[120px] p-4 rounded-xl border-2 border-border bg-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none resize-none transition-colors"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Your response helps our AI understand you better. You can skip if you prefer.
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Navigation */}
+              <div className="flex justify-between items-center mt-6">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    if (currentIndex === 0) {
+                      setPhase("scales");
+                      setCurrentIndex(totalScaleQuestions - 1);
+                    } else {
+                      setCurrentIndex((i) => i - 1);
+                    }
+                  }}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+                </Button>
+                {currentIndex === 2 ? (
+                  <Button variant="hero" onClick={submit}>
+                    Submit Assessment <CheckCircle className="h-4 w-4 ml-1" />
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    onClick={() => setCurrentIndex((i) => i + 1)}
+                  >
+                    {textAnswers[currentIndex].trim() ? "Next" : "Skip"} <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+
+          {phase === "results" && assessmentResult && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -218,7 +363,7 @@ export default function Screening() {
                 <p className={`text-xl font-bold font-heading ${severityColor[assessmentResult.overallBaseline]}`}>
                   {assessmentResult.overallBaseline}
                 </p>
-                {assessmentResult.primaryIssue !== 'None' && (
+                {assessmentResult.primaryIssue !== "None" && (
                   <p className="text-sm text-muted-foreground mt-1">
                     Primary concern: {assessmentResult.primaryIssue}
                   </p>
@@ -233,7 +378,7 @@ export default function Screening() {
                 Continue to AI Chat <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </motion.div>
-          ) : null}
+          )}
         </div>
       </div>
     </div>
