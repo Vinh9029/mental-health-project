@@ -141,10 +141,17 @@ export default function Chat() {
                     key={msg.id}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                    className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                   >
+                    {msg.role === "assistant" && (
+                      <Avatar className="h-8 w-8 shrink-0 mt-1">
+                        <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                          <Brain className="h-4 w-4" />
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
                     <div
-                      className={`max-w-[80%] rounded-2xl px-5 py-3 text-sm leading-relaxed ${
+                      className={`max-w-[75%] rounded-2xl px-5 py-3 text-sm leading-relaxed ${
                         msg.role === "user"
                           ? "hero-gradient text-primary-foreground rounded-br-md"
                           : "bg-card border text-card-foreground rounded-bl-md card-elevated"
@@ -158,6 +165,13 @@ export default function Chat() {
                         msg.content
                       )}
                     </div>
+                    {msg.role === "user" && (
+                      <Avatar className="h-8 w-8 shrink-0 mt-1">
+                        <AvatarFallback className="bg-secondary text-base">
+                          {userAvatar}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
                   </motion.div>
                 ))}
               </AnimatePresence>
