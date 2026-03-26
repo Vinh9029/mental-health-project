@@ -6,10 +6,13 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAppStore } from "@/store/useAppStore";
 import { classifyText, getMockChatResponse } from "@/lib/chatUtils";
 import { useReassessment } from "@/hooks/useReassessment";
 import ReassessmentBanner from "@/components/ReassessmentBanner";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const quickReplies = [
   "I'm feeling anxious",
