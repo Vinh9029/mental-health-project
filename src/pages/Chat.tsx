@@ -176,7 +176,12 @@ export default function Chat() {
                 ))}
               </AnimatePresence>
               {isLoading && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3 justify-start">
+                  <Avatar className="h-8 w-8 shrink-0 mt-1">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                      <Brain className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="bg-card border rounded-2xl rounded-bl-md px-5 py-3 card-elevated">
                     <div className="flex gap-1">
                       <span className="h-2 w-2 rounded-full bg-primary animate-pulse-gentle" />
