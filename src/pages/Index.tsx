@@ -43,38 +43,9 @@ const fadeUp = {
 };
 
 export default function Index() {
-  const { user, signOut } = useAuth();
-
   return (
     <div className="min-h-screen bg-background">
-      {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
-        <div className="container mx-auto flex items-center justify-between h-16 px-4">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-lg hero-gradient flex items-center justify-center">
-              <Brain className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-heading text-xl font-semibold text-foreground">MindCare AI</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/chat">Chat</Link>
-            </Button>
-            <Button variant="hero" size="sm" asChild>
-              <Link to="/screening">Start Screening</Link>
-            </Button>
-            {user ? (
-              <Button variant="ghost" size="sm" onClick={signOut}>
-                <LogOut className="h-4 w-4 mr-1" /> Sign Out
-              </Button>
-            ) : (
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/auth">Sign In</Link>
-              </Button>
-            )}
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Hero */}
       <section className="pt-32 pb-20 px-4">
