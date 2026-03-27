@@ -12,6 +12,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getAvatarEmoji } from "@/lib/avatars";
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
@@ -27,8 +28,8 @@ export default function Navbar() {
       .then(({ data }) => setProfile(data));
   }, [user]);
 
-  const displayName = profile?.nickname || user?.email?.split("@")[0] || "User";
-  const avatarEmoji = profile?.avatar_url || "🧠";
+  const displayName = profile?.nickname || profile?.baseline_level && profile?.avatar_url ? (profile?.display_name || user?.email?.split("@")[0]) : (user?.email?.split("@")[0]) || "User";
+  const avatarEmoji = getAvatarEmoji(profile?.avatar_url);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
