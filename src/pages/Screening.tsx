@@ -58,7 +58,7 @@ export default function Screening() {
     next[currentIndex] = value;
     setScaleAnswers(next);
     if (currentIndex < totalQuestions - 1) {
-      setTimeout(() => setCurrentIndex((i) => i + 1), 250);
+      setTimeout(() => setCurrentIndex((i) => Math.min(i + 1, totalQuestions - 1)), 250);
     }
   };
 
