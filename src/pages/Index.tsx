@@ -62,40 +62,77 @@ export default function Index() {
       <Navbar />
 
       {/* Hero */}
-      <section className="pt-32 pb-20 px-4">
-        <div className="container mx-auto text-center max-w-3xl">
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight"
-          >
-            Your Journey to{" "}
-            <span className="inline-block text-primary">Mental Wellness</span>{" "}
-            Starts Here
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15, duration: 0.6 }}
-            className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed"
-          >
-            Connect with our compassionate AI assistant for personalized mental health support.
-            Available 24/7 to listen, understand, and guide you toward better mental wellness.
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
-            className="mt-10 flex flex-wrap justify-center gap-4"
-          >
-            <Button variant="hero" size="xl" asChild>
-              <Link to="/screening">Start Screening</Link>
-            </Button>
-            <Button variant="hero-outline" size="xl" asChild>
-              <a href="#features">Learn More</a>
-            </Button>
-          </motion.div>
+      <section className="relative pt-28 pb-20 px-4 overflow-hidden">
+        {/* Decorative blobs */}
+        <div className="blob blob-1" />
+        <div className="blob blob-2" />
+        <div className="blob blob-3" />
+
+        <div className="container mx-auto max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
+          {/* Left column */}
+          <div>
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight"
+            >
+              Your Journey to{" "}
+              <span className="text-primary">Mental Wellness</span>{" "}
+              Starts Here
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.6 }}
+              className="mt-6 text-lg text-muted-foreground max-w-lg leading-relaxed"
+            >
+              Connect with our compassionate AI assistant for personalized mental health support.
+              Available 24/7 to listen, understand, and guide you toward better mental wellness.
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+              className="mt-10 flex flex-wrap gap-4"
+            >
+              <Button variant="hero" size="xl" asChild>
+                <Link to="/screening">Start Screening</Link>
+              </Button>
+              <Button variant="hero-outline" size="xl" asChild>
+                <a href="#features">Learn More</a>
+              </Button>
+            </motion.div>
+          </div>
+
+          {/* Right column — decorative composition */}
+          <div className="relative flex items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.7 }}
+              className="relative z-10 w-72 h-72 sm:w-80 sm:h-80 lg:w-96 lg:h-96 rounded-[2rem] overflow-hidden card-elevated"
+            >
+              <img src={mentalHealth1} alt="Mental wellness illustration" className="w-full h-full object-cover" />
+            </motion.div>
+
+            {/* Floating icons */}
+            {[
+              { Icon: Heart, className: "top-2 right-0 bg-destructive/15 text-destructive", y: [0, -10, 0] },
+              { Icon: Brain, className: "-left-4 top-1/4 bg-primary/15 text-primary", y: [0, 12, 0] },
+              { Icon: MessageCircle, className: "bottom-4 -left-2 bg-accent/15 text-accent", y: [0, -8, 0] },
+              { Icon: Shield, className: "-right-2 bottom-1/4 bg-primary/15 text-primary", y: [0, 10, 0] },
+            ].map(({ Icon, className, y }, i) => (
+              <motion.div
+                key={i}
+                animate={{ y }}
+                transition={{ duration: 3 + i * 0.5, repeat: Infinity, ease: "easeInOut" }}
+                className={`absolute z-20 h-12 w-12 rounded-xl flex items-center justify-center backdrop-blur-sm shadow-md ${className}`}
+              >
+                <Icon className="h-6 w-6" />
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
 
