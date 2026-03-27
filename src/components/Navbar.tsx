@@ -16,7 +16,7 @@ import { getAvatarEmoji } from "@/lib/avatars";
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
-  const [profile, setProfile] = useState<{ nickname?: string; avatar_url?: string; baseline_level?: string } | null>(null);
+  const [profile, setProfile] = useState<{ nickname?: string; avatar_url?: string; baseline_level?: string; display_name?: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
