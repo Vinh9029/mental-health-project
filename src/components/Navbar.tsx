@@ -12,23 +12,24 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getAvatarEmoji } from "@/lib/avatars";
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
-  const [profile, setProfile] = useState<{ nickname?: string; avatar_url?: string; baseline_level?: string } | null>(null);
+  const [profile, setProfile] = useState<{ nickname?: string; avatar_url?: string; baseline_level?: string; display_name?: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
     supabase
       .from("profiles")
-      .select("nickname, avatar_url, baseline_level")
+      .select("nickname, display_name, avatar_url, baseline_level")
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => setProfile(data));
   }, [user]);
 
-  const displayName = profile?.nickname || user?.email?.split("@")[0] || "User";
-  const avatarEmoji = profile?.avatar_url || "🧠";
+  const displayName = profile?.nickname || profile?.display_name || user?.email?.split("@")[0] || "User";
+  const avatarEmoji = getAvatarEmoji(profile?.avatar_url);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">

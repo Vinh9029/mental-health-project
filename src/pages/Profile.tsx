@@ -10,16 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { useTheme } from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
 
-const AVATARS = [
-  { id: "avatar-calm", label: "Calm Cloud", emoji: "☁️" },
-  { id: "avatar-sun", label: "Sunshine", emoji: "🌤️" },
-  { id: "avatar-leaf", label: "Peaceful Leaf", emoji: "🍃" },
-  { id: "avatar-star", label: "Bright Star", emoji: "⭐" },
-  { id: "avatar-wave", label: "Ocean Wave", emoji: "🌊" },
-  { id: "avatar-moon", label: "Night Moon", emoji: "🌙" },
-  { id: "avatar-flower", label: "Bloom", emoji: "🌸" },
-  { id: "avatar-mountain", label: "Mountain", emoji: "⛰️" },
-];
+import { AVATARS } from "@/lib/avatars";
 
 const severityColor: Record<string, string> = {
   Normal: "text-primary",
@@ -78,8 +69,9 @@ export default function Profile() {
     const { error } = await supabase
       .from("profiles")
       .update({
-        display_name: nickname,
-        avatar_url: selectedAvatar,
+      display_name: nickname,
+      nickname: nickname,
+      avatar_url: selectedAvatar,
       } as any)
       .eq("user_id", user.id);
 
