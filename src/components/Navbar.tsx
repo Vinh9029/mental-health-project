@@ -22,13 +22,13 @@ export default function Navbar() {
     if (!user) return;
     supabase
       .from("profiles")
-      .select("nickname, avatar_url, baseline_level")
+      .select("nickname, display_name, avatar_url, baseline_level")
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => setProfile(data));
   }, [user]);
 
-  const displayName = profile?.nickname || profile?.baseline_level && profile?.avatar_url ? (profile?.display_name || user?.email?.split("@")[0]) : (user?.email?.split("@")[0]) || "User";
+  const displayName = profile?.nickname || profile?.display_name || user?.email?.split("@")[0] || "User";
   const avatarEmoji = getAvatarEmoji(profile?.avatar_url);
 
   return (
