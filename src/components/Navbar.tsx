@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Brain, LogOut, User, ChevronDown } from "lucide-react";
+import { Brain, LogOut, User, ChevronDown, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -43,6 +43,9 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" asChild>
             <Link to="/chat">Chat</Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild className="gap-1.5">
+            <Link to="/community"><Users className="h-4 w-4" /> Community</Link>
           </Button>
           <Button variant="hero" size="sm" asChild>
             <Link to="/screening">Start Screening</Link>
