@@ -10,29 +10,107 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
       chat_sessions: {
         Row: {
+          created_at: string | null
+          id: string
+          messages: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          messages?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          messages?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      comments: {
+        Row: {
+          content: string
           created_at: string
           id: string
-          messages: Json
+          parent_comment_id: string | null
+          post_id: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          content: string
           created_at?: string
           id?: string
-          messages?: Json
+          parent_comment_id?: string | null
+          post_id: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          content?: string
           created_at?: string
           id?: string
-          messages?: Json
+          parent_comment_id?: string | null
+          post_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_edited: boolean
+          mood_tag: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_edited?: boolean
+          mood_tag?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_edited?: boolean
+          mood_tag?: string | null
+          title?: string
           updated_at?: string
           user_id?: string
         }
@@ -40,69 +118,101 @@ export type Database = {
       }
       profiles: {
         Row: {
-          activated: boolean
+          activated: boolean | null
           avatar_url: string | null
           baseline_level: string | null
-          created_at: string
+          created_at: string | null
           display_name: string | null
           id: string
           last_assessment_date: string | null
           nickname: string | null
           primary_issue: string | null
-          updated_at: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          activated?: boolean
+          activated?: boolean | null
           avatar_url?: string | null
           baseline_level?: string | null
-          created_at?: string
+          created_at?: string | null
           display_name?: string | null
-          id?: string
+          id: string
           last_assessment_date?: string | null
           nickname?: string | null
           primary_issue?: string | null
-          updated_at?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          activated?: boolean
+          activated?: boolean | null
           avatar_url?: string | null
           baseline_level?: string | null
-          created_at?: string
+          created_at?: string | null
           display_name?: string | null
           id?: string
           last_assessment_date?: string | null
           nickname?: string | null
           primary_issue?: string | null
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
       }
-      user_states: {
+      reactions: {
         Row: {
           created_at: string
-          extracted_insights: Json | null
+          emoji: string
           id: string
-          preferred_coping_methods: string[] | null
-          updated_at: string
+          post_id: string
           user_id: string
         }
         Insert: {
           created_at?: string
-          extracted_insights?: Json | null
+          emoji: string
           id?: string
-          preferred_coping_methods?: string[] | null
-          updated_at?: string
+          post_id: string
           user_id: string
         }
         Update: {
           created_at?: string
+          emoji?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_states: {
+        Row: {
+          created_at: string | null
+          extracted_insights: Json | null
+          id: string
+          preferred_coping_methods: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
           extracted_insights?: Json | null
           id?: string
           preferred_coping_methods?: string[] | null
-          updated_at?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          extracted_insights?: Json | null
+          id?: string
+          preferred_coping_methods?: string[] | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
