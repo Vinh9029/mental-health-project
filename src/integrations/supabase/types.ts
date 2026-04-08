@@ -88,6 +88,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          image_url: string | null
           is_edited: boolean
           mood_tag: string | null
           title: string
@@ -98,6 +99,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          image_url?: string | null
           is_edited?: boolean
           mood_tag?: string | null
           title: string
@@ -108,6 +110,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          image_url?: string | null
           is_edited?: boolean
           mood_tag?: string | null
           title?: string

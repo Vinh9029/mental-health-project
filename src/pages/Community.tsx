@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getAvatarEmoji } from "@/lib/avatars";
-import { Heart, MessageCircle, Send, PenLine, CornerDownRight, Plus, Smile, Flame, Cloud, Zap, Sparkles, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Send, PenLine, CornerDownRight, Plus, Smile, Flame, Cloud, Zap, Sparkles, Loader2, ImagePlus, X, Maximize2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -73,6 +73,7 @@ interface Post {
   user_id: string;
   title: string;
   content: string;
+  image_url: string | null;
   mood_tag: string | null;
   is_edited: boolean;
   created_at: string;
@@ -93,6 +94,9 @@ export default function Community() {
   const [newContent, setNewContent] = useState("");
   const [newMood, setNewMood] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
@@ -171,20 +175,56 @@ export default function Community() {
     setLoading(false);
   }
 
+  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size must be less than 5MB");
+        return;
+      }
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  }
+
   async function handleCreatePost() {
     if (!user || !newTitle.trim() || !newContent.trim()) return;
     setSubmitting(true);
+    
+    let uploadedImageUrl = null;
+    
+    // 1. Upload ảnh lên Supabase Storage nếu có
+    if (imageFile) {
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('community-images')
+        .upload(fileName, imageFile);
+        
+      if (uploadError) {
+        toast.error("Failed to upload image");
+        setSubmitting(false);
+        return;
+      }
+      
+      uploadedImageUrl = supabase.storage.from('community-images').getPublicUrl(fileName).data.publicUrl;
+    }
+
     const { error } = await supabase.from("posts").insert({
       user_id: user.id,
       title: newTitle.trim(),
       content: newContent.trim(),
       mood_tag: newMood || null,
+      image_url: uploadedImageUrl,
     });
     setSubmitting(false);
     if (error) { toast.error("Failed to create post"); return; }
     setNewTitle("");
     setNewContent("");
     setNewMood("");
+    setImageFile(null);
+    setImagePreview(null);
     setCreateOpen(false);
     toast.success("Post shared! 🎉");
     fetchPosts();
@@ -226,6 +266,35 @@ export default function Community() {
                   rows={5}
                   maxLength={2000}
                 />
+                
+                {/* Image Preview Area */}
+                {imagePreview && (
+                  <div className="relative rounded-xl overflow-hidden border border-border">
+                    <img src={imagePreview} alt="Preview" className="w-full h-48 object-cover" />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-7 w-7 rounded-full"
+                      onClick={() => { setImageFile(null); setImagePreview(null); }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={handleImageSelect}
+                  />
+                  <Button variant="outline" size="sm" className="gap-2 text-muted-foreground" onClick={() => fileInputRef.current?.click()}>
+                    <ImagePlus className="h-4 w-4" /> {imageFile ? "Change Image" : "Add Image"}
+                  </Button>
+                </div>
+
                 <Select value={newMood} onValueChange={setNewMood}>
                   <SelectTrigger>
                     <SelectValue placeholder="How are you feeling? (optional)" />
@@ -298,7 +367,7 @@ function PostCard({
   onRefresh: () => void;
   profiles: Record<string, Profile>;
 }) {
-  const [showComments, setShowComments] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -396,7 +465,19 @@ function PostCard({
         ) : (
           <>
             <h3 className="text-lg font-semibold text-foreground">{post.title}</h3>
-            <p className="text-foreground/80 whitespace-pre-wrap leading-relaxed">{post.content}</p>
+            <p className="text-foreground/80 whitespace-pre-wrap leading-relaxed line-clamp-3">{post.content}</p>
+            
+            {post.image_url && (
+              <div 
+                className="relative rounded-xl overflow-hidden border border-border mt-3 cursor-pointer group"
+                onClick={() => setIsDetailModalOpen(true)}
+              >
+                <img src={post.image_url} alt="Post attachment" className="w-full max-h-80 object-cover transition-transform duration-300 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Maximize2 className="h-8 w-8 text-white" />
+                </div>
+              </div>
+            )}
           </>
         )}
 
@@ -421,53 +502,68 @@ function PostCard({
 
         <Separator />
 
-        {/* Comment toggle */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-2 text-muted-foreground"
-          onClick={() => setShowComments(!showComments)}
-        >
-          <MessageCircle className="h-4 w-4" />
-          {totalComments > 0 ? `${totalComments} comment${totalComments > 1 ? "s" : ""}` : "Comment"}
-        </Button>
-
-        {showComments && (
-          <div className="space-y-4 pl-2">
-            {/* Comment input */}
-            <div className="flex gap-2">
-              <Textarea
-                placeholder="Write a supportive comment..."
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                rows={2}
-                className="min-h-[60px]"
-                maxLength={500}
-              />
-              <Button
-                size="icon"
-                variant="hero"
-                className="h-10 w-10 shrink-0 self-end"
-                onClick={handleComment}
-                disabled={submitting || !commentText.trim()}
-              >
-                <Send className="h-4 w-4" />
-              </Button>
+        {/* Detail View Dialog (Float Box) */}
+        <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
+          <DialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 text-muted-foreground w-full justify-start"
+            >
+              <MessageCircle className="h-4 w-4" />
+              {totalComments > 0 ? `View all ${totalComments} comments` : "Be the first to comment"}
+            </Button>
+          </DialogTrigger>
+          
+          <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col overflow-hidden p-0">
+            <DialogHeader className="p-6 pb-2 shrink-0">
+              <DialogTitle className="flex items-center gap-3">
+                <Avatar className="h-8 w-8"><AvatarFallback className="bg-primary/10 text-sm">{avatarEmoji}</AvatarFallback></Avatar>
+                <span>{displayName}'s Post</span>
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="overflow-y-auto p-6 pt-2 flex-1 space-y-6 custom-scrollbar">
+              <div>
+                <h3 className="text-xl font-bold mb-2 text-foreground">{post.title}</h3>
+                <p className="text-foreground/90 whitespace-pre-wrap">{post.content}</p>
+                {post.image_url && (
+                  <img src={post.image_url} alt="Post" className="w-full rounded-xl mt-4 border border-border" />
+                )}
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-4">
+                <h4 className="font-semibold text-sm text-muted-foreground">Comments ({totalComments})</h4>
+                {post.comments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4 bg-muted/30 rounded-xl">No comments yet. Leave a supportive message!</p>
+                ) : (
+                  post.comments.map((comment) => (
+                    <CommentItem key={comment.id} comment={comment} postId={post.id} userId={user.id} onRefresh={onRefresh} profiles={profiles} />
+                  ))
+                )}
+              </div>
             </div>
-
-            {/* Comments list */}
-            {post.comments.map((comment) => (
-              <CommentItem
-                key={comment.id}
-                comment={comment}
-                postId={post.id}
-                userId={user.id}
-                onRefresh={onRefresh}
-                profiles={profiles}
-              />
-            ))}
-          </div>
-        )}
+            
+            {/* Comment Input Sticky Bottom */}
+            <div className="p-4 bg-card border-t border-border mt-auto shrink-0">
+              <div className="flex gap-2">
+                <Textarea
+                  placeholder="Write a supportive comment..."
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  rows={1}
+                  className="min-h-[44px] resize-none"
+                  maxLength={500}
+                />
+                <Button size="icon" variant="hero" className="h-11 w-11 shrink-0" onClick={handleComment} disabled={submitting || !commentText.trim()}>
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
