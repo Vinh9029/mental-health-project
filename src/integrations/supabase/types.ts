@@ -10,99 +10,99 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.4"
   }
   public: {
     Tables: {
       chat_sessions: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
-          messages: Json | null
-          updated_at: string | null
+          messages: Json
+          updated_at: string
           user_id: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
-          messages?: Json | null
-          updated_at?: string | null
+          messages?: Json
+          updated_at?: string
           user_id: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
-          messages?: Json | null
-          updated_at?: string | null
+          messages?: Json
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
       }
       profiles: {
         Row: {
-          activated: boolean | null
+          activated: boolean
           avatar_url: string | null
           baseline_level: string | null
-          created_at: string | null
+          created_at: string
           display_name: string | null
           id: string
           last_assessment_date: string | null
           nickname: string | null
           primary_issue: string | null
-          updated_at: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
-          activated?: boolean | null
+          activated?: boolean
           avatar_url?: string | null
           baseline_level?: string | null
-          created_at?: string | null
-          display_name?: string | null
-          id: string
-          last_assessment_date?: string | null
-          nickname?: string | null
-          primary_issue?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          activated?: boolean | null
-          avatar_url?: string | null
-          baseline_level?: string | null
-          created_at?: string | null
+          created_at?: string
           display_name?: string | null
           id?: string
           last_assessment_date?: string | null
           nickname?: string | null
           primary_issue?: string | null
-          updated_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activated?: boolean
+          avatar_url?: string | null
+          baseline_level?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          last_assessment_date?: string | null
+          nickname?: string | null
+          primary_issue?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
       }
       user_states: {
         Row: {
-          created_at: string | null
+          created_at: string
           extracted_insights: Json | null
           id: string
           preferred_coping_methods: string[] | null
-          updated_at: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           extracted_insights?: Json | null
           id?: string
           preferred_coping_methods?: string[] | null
-          updated_at?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           extracted_insights?: Json | null
           id?: string
           preferred_coping_methods?: string[] | null
-          updated_at?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
