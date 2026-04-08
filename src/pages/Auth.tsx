@@ -94,7 +94,7 @@ export default function Auth() {
 
   const formVariants = {
     hidden: { opacity: 0, x: isLogin ? -20 : 20 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: "easeOut" } },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: "easeOut" as const } },
     exit: { opacity: 0, x: isLogin ? 20 : -20, transition: { duration: 0.2 } },
   };
 
