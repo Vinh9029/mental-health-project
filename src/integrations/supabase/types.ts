@@ -10,99 +10,99 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
       chat_sessions: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: string
-          messages: Json
-          updated_at: string
+          messages: Json | null
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           id?: string
-          messages?: Json
-          updated_at?: string
+          messages?: Json | null
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           id?: string
-          messages?: Json
-          updated_at?: string
+          messages?: Json | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
       }
       profiles: {
         Row: {
-          activated: boolean
+          activated: boolean | null
           avatar_url: string | null
           baseline_level: string | null
-          created_at: string
+          created_at: string | null
           display_name: string | null
           id: string
           last_assessment_date: string | null
           nickname: string | null
           primary_issue: string | null
-          updated_at: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          activated?: boolean
+          activated?: boolean | null
           avatar_url?: string | null
           baseline_level?: string | null
-          created_at?: string
+          created_at?: string | null
           display_name?: string | null
-          id?: string
+          id: string
           last_assessment_date?: string | null
           nickname?: string | null
           primary_issue?: string | null
-          updated_at?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          activated?: boolean
+          activated?: boolean | null
           avatar_url?: string | null
           baseline_level?: string | null
-          created_at?: string
+          created_at?: string | null
           display_name?: string | null
           id?: string
           last_assessment_date?: string | null
           nickname?: string | null
           primary_issue?: string | null
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
       }
       user_states: {
         Row: {
-          created_at: string
+          created_at: string | null
           extracted_insights: Json | null
           id: string
           preferred_coping_methods: string[] | null
-          updated_at: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           extracted_insights?: Json | null
           id?: string
           preferred_coping_methods?: string[] | null
-          updated_at?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           extracted_insights?: Json | null
           id?: string
           preferred_coping_methods?: string[] | null
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
