@@ -8,7 +8,7 @@ import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAppStore } from "@/store/useAppStore";
-import { classifyText, getMockChatResponse } from "@/lib/chatUtils";
+import { classifyText } from "@/lib/chatUtils";
 import { useReassessment } from "@/hooks/useReassessment";
 import ReassessmentBanner from "@/components/ReassessmentBanner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -93,15 +93,25 @@ export default function Chat() {
 
     try {
       const nlpLabel = classifyText(text);
-      const response = getMockChatResponse(
-        text,
-        nlpLabel,
-        assessmentResult?.overallBaseline ?? "Normal",
-        assessmentResult?.primaryIssue ?? "None"
-      );
-      // Simulate thinking delay
-      await new Promise((r) => setTimeout(r, 800 + Math.random() * 600));
-      addChatMessage({ role: "assistant", content: response });
+      
+      // Gọi API FastAPI thay vì Mock Data
+      const res = await fetch("http://localhost:8000/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          user_id: user?.id || "anonymous",
+          severe_level: assessmentResult?.overallBaseline ?? "Normal",
+          mental_status: assessmentResult?.primaryIssue && assessmentResult.primaryIssue !== "None" 
+                         ? assessmentResult.primaryIssue 
+                         : nlpLabel
+        })
+      });
+
+      if (!res.ok) throw new Error("Lỗi khi kết nối với máy chủ AI");
+      
+      const data = await res.json();
+      addChatMessage({ role: "assistant", content: data.reply });
     } catch {
       addChatMessage({
         role: "assistant",
