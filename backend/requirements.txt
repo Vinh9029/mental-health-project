@@ -4,10 +4,10 @@ uvicorn
 pydantic
 python-dotenv
 
-# LLM & RAG
-langchain
-langchain-core
-langchain-community
+# LLM & RAG (compatible versions)
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-community>=0.0.1
 langchain-openai
 langchain-pinecone
 langdetect

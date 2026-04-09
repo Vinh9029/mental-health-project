@@ -1,4 +1,90 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+// Chatbot conversation history type
+type ChatMessage = {
+  sender: "user" | "bot";
+  text: string;
+};
+// --- Chatbot Conversation State ---
+const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+const [chatInput, setChatInput] = useState("");
+const [isBotTyping, setIsBotTyping] = useState(false);
+const chatEndRef = useRef<HTMLDivElement>(null);
+
+// Scroll to bottom on new message
+useEffect(() => {
+  if (chatEndRef.current) {
+    chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+  }
+}, [chatHistory]);
+
+// Send message to chatbot (dummy implementation, replace with real API call)
+async function sendMessageToBot(message: string) {
+  setIsBotTyping(true);
+  setChatHistory((prev) => [...prev, { sender: "user", text: message }]);
+  try {
+    const response = await fetch("http://localhost:8000/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    });
+    let botReply = "Sorry, no response.";
+    if (response.ok) {
+      const data = await response.json();
+      // Support multiple possible keys from backend
+      botReply = data.result || data.reply || data.text || "(No reply)";
+    } else {
+      botReply = "Chatbot service error.";
+    }
+    setChatHistory((prev) => [...prev, { sender: "bot", text: botReply }]);
+  } catch (err) {
+    setChatHistory((prev) => [...prev, { sender: "bot", text: "Error contacting chatbot." }]);
+  }
+  setIsBotTyping(false);
+}
+// --- Chatbot UI Section ---
+const renderChatbotSection = () => (
+  <div className="bg-card rounded-2xl p-6 card-elevated mb-8">
+    <h3 className="font-heading text-lg font-bold mb-4 text-card-foreground">Chatbot Conversation</h3>
+    <div className="h-64 overflow-y-auto border rounded-xl p-3 bg-background mb-3">
+      {chatHistory.length === 0 && (
+        <div className="text-muted-foreground text-sm text-center mt-16">No messages yet. Start the conversation!</div>
+      )}
+      {chatHistory.map((msg, idx) => (
+        <div key={idx} className={`flex mb-2 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
+          <div className={`px-4 py-2 rounded-xl max-w-[70%] ${msg.sender === "user" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
+            {msg.text}
+          </div>
+        </div>
+      ))}
+      {isBotTyping && (
+        <div className="flex justify-start mb-2">
+          <div className="px-4 py-2 rounded-xl bg-secondary text-foreground opacity-70">...
+          </div>
+        </div>
+      )}
+      <div ref={chatEndRef} />
+    </div>
+    <form
+      className="flex gap-2"
+      onSubmit={e => {
+        e.preventDefault();
+        if (chatInput.trim()) {
+          sendMessageToBot(chatInput.trim());
+          setChatInput("");
+        }
+      }}
+    >
+      <input
+        className="flex-1 border rounded-xl px-3 py-2 text-sm bg-background"
+        placeholder="Type your message..."
+        value={chatInput}
+        onChange={e => setChatInput(e.target.value)}
+        disabled={isBotTyping}
+      />
+      <Button type="submit" variant="hero" disabled={isBotTyping || !chatInput.trim()}>Send</Button>
+    </form>
+  </div>
+);
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, CheckCircle, MessageSquare, Brain } from "lucide-react";
@@ -170,24 +256,66 @@ export default function FollowUp() {
 
   const submit = async () => {
     if (!assessmentResult) return;
-    setAssessmentResult(assessmentResult);
     setSubmitted(true);
 
-    // TODO: Send textAnswers to sentiment analysis model
-    // The follow-up text responses should be classified using an NLP model
-    // to assign one of 7 labels: Anxiety(0), Bipolar(1), Depression(2), Normal(3),
-    // Personality Disorder(4), Stress(5), Suicidal(6)
-    // Example:
-    // const combinedText = textAnswers.join(" ");
-    // const sentimentLabel = await classifySentiment(combinedText);
-    // await updateUserProfile(user.id, sentimentLabel);
+    let finalAssessmentResult = { ...assessmentResult };
+    
+    // Apply BERT sentiment analysis to text responses
+    if (textAnswers.some(t => t.trim())) {
+      try {
+        console.log("📊 Analyzing text responses with BERT...");
+        
+        const sentimentRes = await fetch("http://localhost:8000/api/sentiment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text_responses: textAnswers,
+            user_id: user?.id || "anonymous"
+          })
+        });
+        
+        if (sentimentRes.ok) {
+          const sentimentData = await sentimentRes.json();
+          console.log("🏷️ BERT Classification:", sentimentData);
+          
+          // Map BERT label to mental status
+          const bertToMentalStatus: Record<string, string> = {
+            "Anxiety": "Anxiety",
+            "Depression": "Depression",
+            "Stress": "Anxiety",  // Stress treated as Anxiety for profile
+            "Bipolar": "Depression",  // Bipolar treated as Depression for profile
+            "Personality Disorder": "Anxiety",  // Personality disorder as Anxiety
+            "Suicidal": "Severe",  // Special case
+            "Normal": "None"
+          };
+          
+          // Override primaryIssue with BERT result
+          const mentalStatus = bertToMentalStatus[sentimentData.label] || sentimentData.label;
+          finalAssessmentResult = {
+            ...finalAssessmentResult,
+            primaryIssue: mentalStatus as any,  // Override with BERT classification
+            label: sentimentData.label,  // Store original BERT label
+            confidence: sentimentData.confidence
+          };
+          
+          console.log("✅ Updated assessment with BERT:", finalAssessmentResult);
+        } else {
+          console.warn("⚠️ Sentiment API failed, using baseline classification");
+        }
+      } catch (error) {
+        console.error("❌ Error calling sentiment API:", error);
+        // Continue with baseline assessment if BERT fails
+      }
+    }
+    
+    setAssessmentResult(finalAssessmentResult);
 
     if (user) {
       await supabase
         .from("profiles")
         .update({
-          baseline_level: assessmentResult.overallBaseline,
-          primary_issue: assessmentResult.primaryIssue,
+          baseline_level: finalAssessmentResult.overallBaseline,
+          primary_issue: finalAssessmentResult.primaryIssue,
           last_assessment_date: new Date().toISOString(),
         } as any)
         .eq("user_id", user.id);
@@ -365,13 +493,54 @@ export default function FollowUp() {
                   )}
                 </div>
 
+                {/* Sentiment Analysis Results */}
+                {assessmentResult.label && (
+                  <div className="bg-secondary rounded-xl p-5 mb-8">
+                    <p className="text-sm text-muted-foreground mb-2">Sentiment Analysis (AI)</p>
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-lg font-bold">{assessmentResult.label}</span>
+                      <span className="text-xs text-muted-foreground">Dominant Emotion</span>
+                      {assessmentResult.confidence !== undefined && (
+                        <span className="text-xs text-muted-foreground">Confidence: {(assessmentResult.confidence * 100).toFixed(1)}%</span>
+                      )}
+                    </div>
+                    {/* Probabilities if available */}
+                    {assessmentResult.probabilities && (
+                      <div className="mt-3">
+                        <p className="text-xs text-muted-foreground mb-1">All Sentiment Probabilities:</p>
+                        <div className="flex flex-wrap gap-2 justify-center">
+                          {Object.entries(assessmentResult.probabilities).map(([k, v]) => (
+                            <span key={k} className="px-2 py-1 bg-gray-100 rounded text-xs">
+                              {k}: {(v * 100).toFixed(1)}%
+                            </span>
+                          ))}
+                        </div>
+                        {/* Average Sentiment Score */}
+                        <div className="mt-2 text-xs text-muted-foreground">
+                          Average Sentiment: {(
+                            Object.values(assessmentResult.probabilities).reduce((a, b) => a + b, 0) /
+                            Object.values(assessmentResult.probabilities).length
+                          ).toFixed(2)}
+                        </div>
+                      </div>
+                    )}
+                    {/* Suicidal warning */}
+                    {assessmentResult.label === "Suicidal" && (
+                      <div className="mt-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded">
+                        <strong>🚨 Immediate Help Needed!</strong><br />
+                        We detected signs of suicidal thoughts. Please reach out to a crisis hotline:<br />
+                        <b>Vietnam: 1925</b> | <b>US: 988</b> | <b>UK: 116 123</b>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <p className="text-xs text-muted-foreground mb-6">
                   This screening is not a diagnosis. Please consult a mental health professional for clinical evaluation.
                 </p>
 
-                <Button variant="hero" size="lg" onClick={() => navigate("/chat")}>
-                  Continue to AI Chat <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+                {/* Chatbot Conversation Section */}
+                {renderChatbotSection()}
               </motion.div>
             )
           )}

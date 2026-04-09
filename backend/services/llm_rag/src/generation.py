@@ -1,7 +1,8 @@
-from langchain.prompts import PromptTemplate, ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.messages import SystemMessage
+from langchain_core.prompts import PromptTemplate, ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import SystemMessage, BaseMessage, AIMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser
-from langchain.memory import ConversationBufferWindowMemory
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_core.chat_history import BaseChatMessageHistory
 import langdetect
 from langdetect import detect, LangDetectException
 from functools import lru_cache
@@ -13,9 +14,8 @@ class ResponseGenerator:
     # Initialize with LLM and memory for conversation history. Memory keeps the last 5 interactions for context.
     def __init__(self, llm):
         self.llm = llm
-        self.memory = ConversationBufferWindowMemory(
-            k=5, return_messages=True, memory_key="chat_history"
-        )
+        self.chat_history = []  # Store last 5 messages
+        self.max_history = 5
         
         # LRU Cache for language detection
         self._lang_cache = {}
@@ -106,7 +106,7 @@ class ResponseGenerator:
         """
         docs = retriever.invoke(expanded_query)
         context = "\n\n".join([doc.page_content for doc in docs])
-        chat_history = self.memory.load_memory_variables({})["chat_history"]
+        chat_history = self.chat_history[-self.max_history:]
         
         if is_vietnamese:
             # Generate ONLY in Vietnamese (no English generation waste)
@@ -174,8 +174,9 @@ Retrieved context for reference:
                 "mental_status": mental_status
             })
         
-        # Save original user query to memory for consistency
-        self.memory.save_context({"input": user_query}, {"output": response})
+        # Save to chat history
+        self.chat_history.append(HumanMessage(content=user_query))
+        self.chat_history.append(AIMessage(content=response))
         return response
 
 

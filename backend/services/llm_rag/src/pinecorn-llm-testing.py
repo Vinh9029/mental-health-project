@@ -1,6 +1,5 @@
 import os
 import pinecone
-import google.generativeai as genai
 import requests
 from dotenv import load_dotenv
 from pinecone import Pinecone
