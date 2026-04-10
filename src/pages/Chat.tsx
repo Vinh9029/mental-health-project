@@ -8,11 +8,12 @@ import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAppStore } from "@/store/useAppStore";
-import { classifyText, getMockChatResponse } from "@/lib/chatUtils";
+import { classifyText } from "@/lib/chatUtils";
 import { useReassessment } from "@/hooks/useReassessment";
 import ReassessmentBanner from "@/components/ReassessmentBanner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { getAvatarEmoji } from "@/lib/avatars";
 
 const quickReplies = [
   "I'm feeling anxious",
@@ -64,22 +65,40 @@ export default function Chat() {
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
-        if (data?.avatar_url) setUserAvatar(data.avatar_url);
+        if (data?.avatar_url) setUserAvatar(getAvatarEmoji(data.avatar_url));
       });
   }, [user]);
 
   useEffect(() => {
-    if (chatMessages.length === 0) {
-      addChatMessage({
-        role: "assistant",
-        content: `Welcome to MindCare AI! 💚 I'm your mental wellness companion. ${
-          assessmentResult
-            ? `Based on your screening, I'll tailor our conversation to support you. `
-            : `Consider taking our screening assessment for personalized support. `
-        }How are you feeling today?`,
-      });
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    const loadChatHistory = async () => {
+      if (chatMessages.length === 0) {
+        if (user) {
+          const { data, error } = await supabase
+            .from("chat_messages")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: true });
+            
+          if (!error && data && data.length > 0) {
+            data.forEach((msg) => {
+              addChatMessage({ role: msg.role as "user" | "assistant", content: msg.content });
+            });
+            return;
+          }
+        }
+        
+        addChatMessage({
+          role: "assistant",
+          content: `Welcome to MindCare AI! 💚 I'm your mental wellness companion. ${
+            assessmentResult
+              ? `Based on your screening, I'll tailor our conversation to support you. `
+              : `Consider taking our screening assessment for personalized support. `
+          }How are you feeling today?`,
+        });
+      }
+    };
+    loadChatHistory();
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -91,17 +110,45 @@ export default function Chat() {
     addChatMessage({ role: "user", content: text });
     setIsLoading(true);
 
+    if (user) {
+      await supabase.from("chat_messages").insert({
+        user_id: user.id,
+        role: "user",
+        content: text
+      });
+    }
+
     try {
       const nlpLabel = classifyText(text);
-      const response = getMockChatResponse(
-        text,
-        nlpLabel,
-        assessmentResult?.overallBaseline ?? "Normal",
-        assessmentResult?.primaryIssue ?? "None"
-      );
-      // Simulate thinking delay
-      await new Promise((r) => setTimeout(r, 800 + Math.random() * 600));
-      addChatMessage({ role: "assistant", content: response });
+      
+      // Gọi API FastAPI thay vì Mock Data
+      const res = await fetch("http://localhost:8000/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          user_id: user?.id || "anonymous",
+          baseline_severity: assessmentResult?.overallBaseline ?? "Normal",
+          baseline_issue: assessmentResult?.primaryIssue && assessmentResult.primaryIssue !== "None" 
+                         ? assessmentResult.primaryIssue 
+                         : "None",
+          realtime_status: nlpLabel !== "Normal" ? nlpLabel : (assessmentResult?.realtimeStatus || "Normal"),
+          history: chatMessages.map(msg => ({ role: msg.role, content: msg.content }))
+        })
+      });
+
+      if (!res.ok) throw new Error("Lỗi khi kết nối với máy chủ AI");
+      
+      const data = await res.json();
+      addChatMessage({ role: "assistant", content: data.reply });
+
+      if (user) {
+        await supabase.from("chat_messages").insert({
+          user_id: user.id,
+          role: "assistant",
+          content: data.reply
+        });
+      }
     } catch {
       addChatMessage({
         role: "assistant",

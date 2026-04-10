@@ -1,0 +1,21 @@
+# Core Framework
+fastapi
+uvicorn
+pydantic
+python-dotenv
+
+# LLM & RAG (compatible versions)
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-community>=0.0.1
+langchain-openai
+langchain-pinecone
+langdetect
+sentence-transformers
+
+# NLP Sentiment Analysis (BERT & ML)
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+torch>=2.0.0
+transformers>=4.30.0

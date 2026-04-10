@@ -10,6 +10,10 @@ interface AssessmentResult {
   gad7Severity: SeverityLevel;
   overallBaseline: SeverityLevel;
   primaryIssue: PrimaryIssue;
+  phq9Q9Score?: number;
+  realtimeStatus?: string;
+  realtimeConfidence?: number;
+  probabilities?: Record<string, number>;
 }
 
 interface ChatMessage {
@@ -43,6 +47,7 @@ export function calculateBaseline(phq9Scores: number[], gad7Scores: number[]): A
   const gad7Score = gad7Scores.reduce((a, b) => a + b, 0);
   const phq9Severity = getSeverity(phq9Score);
   const gad7Severity = getSeverity(gad7Score);
+  const phq9Q9Score = phq9Scores.length === 9 ? phq9Scores[8] : 0;
 
   const overallBaseline = severityRank[phq9Severity] >= severityRank[gad7Severity]
     ? phq9Severity : gad7Severity;
@@ -52,7 +57,7 @@ export function calculateBaseline(phq9Scores: number[], gad7Scores: number[]): A
   else if (severityRank[gad7Severity] > severityRank[phq9Severity]) primaryIssue = 'Anxiety';
   else if (phq9Score > 4 || gad7Score > 4) primaryIssue = phq9Score >= gad7Score ? 'Depression' : 'Anxiety';
 
-  return { phq9Score, gad7Score, phq9Severity, gad7Severity, overallBaseline, primaryIssue };
+  return { phq9Score, gad7Score, phq9Severity, gad7Severity, overallBaseline, primaryIssue, phq9Q9Score };
 }
 
 export const useAppStore = create<AppState>((set) => ({
