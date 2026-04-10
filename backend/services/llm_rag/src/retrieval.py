@@ -3,10 +3,46 @@ try:
 except ImportError:
     ContextualCompressionRetriever = None
 
+# Try multiple import paths for CrossEncoderReranker (varies by langchain-community version)
+CrossEncoderReranker = None
 try:
-    from langchain_community.document_compressors import CrossEncoderReranker
+    # langchain-community >= 0.2.x
+    from langchain_community.cross_encoders.huggingface import HuggingFaceCrossEncoder as _CE
+    from langchain.retrievers.document_compressors import CrossEncoderReranker
 except ImportError:
-    CrossEncoderReranker = None
+    pass
+
+if CrossEncoderReranker is None:
+    try:
+        # Fallback for older versions
+        from langchain_community.document_compressors import CrossEncoderReranker
+    except ImportError:
+        pass
+
+if CrossEncoderReranker is None:
+    try:
+        # Manual implementation as last resort
+        from langchain_core.documents import Document
+        from langchain_core.documents.compressor import BaseDocumentCompressor
+        from langchain_community.cross_encoders import HuggingFaceCrossEncoder as _HF
+        from typing import Optional, Sequence
+        from langchain_core.callbacks import Callbacks
+
+        class CrossEncoderReranker(BaseDocumentCompressor):
+            """Minimal CrossEncoder Reranker implementation."""
+            model: _HF
+            top_n: int = 3
+
+            class Config:
+                arbitrary_types_allowed = True
+
+            def compress_documents(self, documents: Sequence[Document], query: str,
+                                   callbacks: Optional[Callbacks] = None) -> Sequence[Document]:
+                scores = self.model.score([(query, doc.page_content) for doc in documents])
+                scored = sorted(zip(scores, documents), key=lambda x: x[0], reverse=True)
+                return [doc for _, doc in scored[:self.top_n]]
+    except Exception as e:
+        print(f"Warning: CrossEncoderReranker unavailable: {e}")
 
 from langchain_community.cross_encoders import HuggingFaceCrossEncoder
 from langchain_pinecone import PineconeVectorStore

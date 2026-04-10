@@ -57,6 +57,17 @@ def get_rag_chat_response(request: ChatRequest) -> ChatResponse:
         retriever = retriever_service.get_retriever()
         generator = ResponseGenerator(llm)
         
+        # Convert frontend history to Langchain format
+        from langchain_core.messages import HumanMessage, AIMessage
+        history_msgs = []
+        if request.history:
+            for msg in request.history:
+                if msg.role == "user" or msg.role == "human":
+                    history_msgs.append(HumanMessage(content=msg.content))
+                elif msg.role == "assistant" or msg.role == "ai":
+                    history_msgs.append(AIMessage(content=msg.content))
+        generator.chat_history = history_msgs[-generator.max_history:]  # Keep within limits
+
         # Translate & expand query
         translated_query, expanded_query = generator.translate_and_expand_query(request.message)
         is_vietnamese = (generator.detect_language(request.message) == 'vi')
