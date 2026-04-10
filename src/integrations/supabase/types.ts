@@ -154,6 +154,12 @@ export type Database = {
           last_assessment_date: string | null
           nickname: string | null
           primary_issue: string | null
+          phq9_score: number | null
+          phq9_severity: string | null
+          gad7_score: number | null
+          gad7_severity: string | null
+          realtime_status: string | null
+          realtime_confidence: number | null
           updated_at: string | null
           user_id: string
         }
@@ -167,6 +173,12 @@ export type Database = {
           last_assessment_date?: string | null
           nickname?: string | null
           primary_issue?: string | null
+          phq9_score?: number | null
+          phq9_severity?: string | null
+          gad7_score?: number | null
+          gad7_severity?: string | null
+          realtime_status?: string | null
+          realtime_confidence?: number | null
           updated_at?: string | null
           user_id: string
         }
@@ -180,6 +192,12 @@ export type Database = {
           last_assessment_date?: string | null
           nickname?: string | null
           primary_issue?: string | null
+          phq9_score?: number | null
+          phq9_severity?: string | null
+          gad7_score?: number | null
+          gad7_severity?: string | null
+          realtime_status?: string | null
+          realtime_confidence?: number | null
           updated_at?: string | null
           user_id?: string
         }

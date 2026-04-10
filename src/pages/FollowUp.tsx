@@ -117,30 +117,64 @@ function pickRandom(pool: string[], count: number): string[] {
 }
 
 function getFollowUpQuestions(phq9Score: number, gad7Score: number): string[] {
-  const phq9Sev = phq9Score <= 4 ? "Normal" : phq9Score <= 9 ? "Mild" : phq9Score <= 14 ? "Moderate" : "Severe";
-  const gad7Sev = gad7Score <= 4 ? "Normal" : gad7Score <= 9 ? "Mild" : gad7Score <= 14 ? "Moderate" : "Severe";
+  const getSev = (score: number, max: number) =>
+    score <= 4 ? "Normal" : score <= 9 ? "Mild" : score <= Math.floor(max * 0.56) ? "Moderate" : "Severe";
 
+  const phq9Sev = getSev(phq9Score, 27);
+  const gad7Sev = getSev(gad7Score, 21);
+
+  const phq9Above = phq9Score > 4;
+  const gad7Above = gad7Score > 4;
+
+  // Severity priority ordering
+  const sevOrder = ["Normal", "Mild", "Moderate", "Severe"];
+  const phq9SevIdx = sevOrder.indexOf(phq9Sev);
+  const gad7SevIdx = sevOrder.indexOf(gad7Sev);
+
+  // Severe case: always add a high-risk question
   if (phq9Sev === "Severe" || gad7Sev === "Severe") {
-    const primaryPool = phq9Score >= gad7Score
+    const primaryPool = phq9SevIdx >= gad7SevIdx
       ? CONVERSATION_QUESTIONS.Depression.Severe
       : CONVERSATION_QUESTIONS.Anxiety.Severe;
-    return [...pickRandom(primaryPool, 2), ...pickRandom(HIGH_RISK_QUESTIONS, 1)];
+    const secondaryPool = phq9SevIdx >= gad7SevIdx
+      ? CONVERSATION_QUESTIONS.Anxiety[gad7Sev]
+      : CONVERSATION_QUESTIONS.Depression[phq9Sev];
+    // 1 crisis question + 1 primary + 1 from secondary (if secondary also above normal)
+    const secondary = (phq9SevIdx >= gad7SevIdx ? gad7Above : phq9Above)
+      ? pickRandom(secondaryPool, 1)
+      : [];
+    return [
+      ...pickRandom(HIGH_RISK_QUESTIONS, 1),
+      ...pickRandom(primaryPool, secondary.length > 0 ? 1 : 2),
+      ...secondary,
+    ];
   }
 
-  let pool: string[];
-  if (phq9Score > gad7Score && phq9Score > 4) {
-    pool = CONVERSATION_QUESTIONS.Depression[phq9Sev];
-  } else if (gad7Score > phq9Score && gad7Score > 4) {
-    pool = CONVERSATION_QUESTIONS.Anxiety[gad7Sev];
-  } else if (phq9Score > 4) {
-    pool = CONVERSATION_QUESTIONS.Depression[phq9Sev];
-  } else if (gad7Score > 4) {
-    pool = CONVERSATION_QUESTIONS.Anxiety[gad7Sev];
-  } else {
-    pool = GENERIC_QUESTIONS;
+  // Both above Normal: mixed pool proportional to severity
+  if (phq9Above && gad7Above) {
+    const dominantIsDepression = phq9SevIdx >= gad7SevIdx;
+    const primaryPool = dominantIsDepression
+      ? CONVERSATION_QUESTIONS.Depression[phq9Sev]
+      : CONVERSATION_QUESTIONS.Anxiety[gad7Sev];
+    const secondaryPool = dominantIsDepression
+      ? CONVERSATION_QUESTIONS.Anxiety[gad7Sev]
+      : CONVERSATION_QUESTIONS.Depression[phq9Sev];
+    // 2 from dominant, 1 from secondary
+    return [...pickRandom(primaryPool, 2), ...pickRandom(secondaryPool, 1)];
   }
 
-  return pickRandom(pool, 3);
+  // Only Depression above Normal
+  if (phq9Above) {
+    return pickRandom(CONVERSATION_QUESTIONS.Depression[phq9Sev], 3);
+  }
+
+  // Only Anxiety above Normal
+  if (gad7Above) {
+    return pickRandom(CONVERSATION_QUESTIONS.Anxiety[gad7Sev], 3);
+  }
+
+  // Both Normal — generic wellbeing questions
+  return pickRandom(GENERIC_QUESTIONS, 3);
 }
 
 export default function FollowUp() {

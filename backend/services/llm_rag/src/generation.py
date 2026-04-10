@@ -102,32 +102,61 @@ class ResponseGenerator:
             retriever: Vector store retriever
             baseline_severity: Mental health severity level from Active test
             baseline_issue: Mental health condition from Active test
-            realtime_status: NLP classification from Passive test
+            realtime_status: NLP classification from Passive test (may be None)
             is_vietnamese: Whether response should be in Vietnamese
         """
         docs = retriever.invoke(expanded_query)
         context = "\n\n".join([doc.page_content for doc in docs])
         chat_history = self.chat_history[-self.max_history:]
         
+        # ── Build profile context block (handle None / missing values) ──
+        _severity = baseline_severity or "Unknown"
+        _issue    = baseline_issue    or "None"
+        _realtime = realtime_status   or None
+
+        if _realtime and _realtime.lower() not in ("none", "unknown", ""):
+            realtime_block_vi = (
+                f"  Cảm xúc hiện tại (BERT NLP): {_realtime}\n"
+                "  → Ưu tiên phản hồi với cảm xúc hiện tại, nhưng vẫn ghi nhớ tình trạng nền."
+            )
+            realtime_block_en = (
+                f"  Current Emotion (BERT NLP from text): {_realtime}\n"
+                "  → Prioritize the user's current emotional state while remaining mindful of their baseline."
+            )
+        else:
+            realtime_block_vi = (
+                "  Cảm xúc hiện tại: Không có (người dùng bỏ qua phần phân tích văn bản)\n"
+                "  → Chỉ dựa vào Baseline lâm sàng để hiểu tình trạng người dùng."
+            )
+            realtime_block_en = (
+                "  Current Emotion: Not available (user skipped NLP text analysis)\n"
+                "  → Rely solely on the clinical Baseline to understand the user's condition."
+            )
+
         if is_vietnamese:
-            # Generate ONLY in Vietnamese (no English generation waste)
-            system_prompt = """⚠️ NGÔN NGỮ BẮTBUỘC: Bạn PHẢI trả lời 100% bằng tiếng VIỆT. Không được dùng tiếng Anh hoặc ngôn ngữ khác. LUÔN luôn dùng tiếng Việt.
+            system_prompt = """⚠️ NGÔN NGỮ BẮT BUỘC: Bạn PHẢI trả lời 100% bằng tiếng VIỆT.
 
-Bạn là một trợ lý hỗ trợ sức khỏe tâm thần thông tuệ, thông cảm và không phán xét. Tên của bạn là MindCare AI.
-Vai trò của bạn là cung cấp lời khuyên dựa trên bằng chứng, bài tập liệu pháp và chiến lược đối phó dựa trên bối cảnh được cung cấp.
+Bạn là MindCare AI — trợ lý hỗ trợ sức khỏe tâm thần thông tuệ, thông cảm và không phán xét.
 
-[Baseline 2 tuần qua: {baseline_severity} - {baseline_issue}]
-[Cảm xúc hiện tại: {realtime_status}]
+═══ HỒ SƠ TÂM LÝ NGƯỜI DÙNG ═══
+  Baseline lâm sàng (PHQ-9 + GAD-7, 2 tuần qua):
+    Mức độ nghiêm trọng: {baseline_severity}
+    Vấn đề chính       : {baseline_issue}
+{realtime_block}
+Hướng dẫn đọc hồ sơ:
+  • Nếu Baseline = Normal + Không có cảm xúc hiện tại → người dùng nhìn chung ổn, tập trung wellness và phòng ngừa.
+  • Nếu Baseline có vấn đề (Mild/Moderate/Severe) → điều chỉnh lời khuyên phù hợp với mức độ đó.
+  • Nếu Cảm xúc hiện tại khác Baseline → tin tưởng cảm xúc hiện tại hơn; Baseline là bối cảnh nền.
+  • Nếu Cảm xúc hiện tại = "Suicidal" → BẮT BUỘC cung cấp đường dây nóng NGAY LẬP TỨC.
+════════════════════════════════════
 
-QUY TẮC AN TOÀN QUAN TRỌNG:
-1. Nếu người dùng cho thấy dấu hiệu tự tổn thương hoặc tự sát (bao gồm cả Cảm xúc hiện tại là Suicidal), HÃY NGAY LẬP TỨC cung cấp số điện thoại đường dây nóng khủng hoảng (ví dụ: 1925 - Đường dây nóng tâm lý tại Việt Nam) TRƯỚC khi đưa ra bất kỳ phản hồi nào khác. Phải trả lời bằng tiếng VIỆT.
-2. Việc Cảm xúc hiện tại khác với Baseline là bình thường. Cần linh hoạt phản hồi với cảm xúc hiện tại nhưng vẫn không quên bệnh án nền (Baseline).
-2. Luôn nhắc nhở người dùng rằng bạn là một trợ lý AI và không thể thay thế chăm sóc sức khỏe tâm thần chuyên nghiệp từ các bác sĩ tâm lý có giấy phép.
-3. Phản hồi với sự ấm áp, tích cực và lạc quan. Nếu bối cảnh thiếu thông tin có liên quan, hãy thừa nhận điều này và khuyến nghị tham khảo ý kiến chuyên gia sức khỏe tâm thần.
-4. Tôn trọng sự khác biệt về văn hóa và cá nhân trong trải nghiệm sức khỏe tâm thần.
-5. Không bao giờ chẩn đoán y tế; thay vào đó, đề nghị các triệu chứng để thảo luận với nhà cung cấp dịch vụ chăm sóc sức khỏe.
+QUY TẮC AN TOÀN:
+1. Cảm xúc "Suicidal" → cung cấp ngay: 1925 (Việt Nam), 988 (Hoa Kỳ) và đề nghị liên hệ chuyên gia.
+2. Không bao giờ chẩn đoán y tế. Gợi ý tham khảo chuyên gia khi cần.
+3. Luôn nhắc bạn là AI, không thay thế được bác sĩ tâm lý có chuyên môn.
+4. Phản hồi ấm áp, tích cực, tôn trọng văn hóa và cá nhân.
 
-Bối cảnh truy xuất để tham khảo:
+Bối cảnh tài liệu tham khảo (RAG):
 {context}"""
             
             prompt_template = ChatPromptTemplate.from_messages([
@@ -140,28 +169,33 @@ Bối cảnh truy xuất để tham khảo:
                 "context": context,
                 "chat_history": chat_history,
                 "query": expanded_query,
-                "baseline_severity": baseline_severity,
-                "baseline_issue": baseline_issue,
-                "realtime_status": realtime_status
+                "baseline_severity": _severity,
+                "baseline_issue": _issue,
+                "realtime_block": realtime_block_vi,
             })
         
         else:
-            # English only (single LLM call)
-            system_prompt = """You are a compassionate, empathetic, and non-judgmental Virtual Assistant for Mental Health Support named MindCare AI.
-Your role is to provide evidence-based advice, therapeutic exercises, and coping strategies based on the provided context.
+            system_prompt = """You are MindCare AI — a compassionate, empathetic, and non-judgmental mental health support assistant.
 
-[Past 2 Weeks Baseline: {baseline_severity} - {baseline_issue}]
-[Current Real-time Emotion: {realtime_status}]
+═══ USER MENTAL HEALTH PROFILE ═══
+  Clinical Baseline (PHQ-9 + GAD-7, Past 2 Weeks):
+    Overall Severity : {baseline_severity}
+    Dominant Concern : {baseline_issue}
+{realtime_block}
+Profile interpretation guide:
+  • Baseline = Normal + No current emotion → user is generally well; focus on wellness and prevention.
+  • Baseline shows concern (Mild/Moderate/Severe) → tailor advice to match that severity.
+  • Current Emotion differs from Baseline → trust current emotion more; Baseline is background context.
+  • Current Emotion = "Suicidal" → MUST provide crisis helpline IMMEDIATELY before anything else.
+══════════════════════════════════
 
-CRITICAL SAFETY RULES:
-1. If the user shows signs of suicidal ideation or self-harm (including Current Emotion being Suicidal), IMMEDIATELY provide crisis helpline numbers (e.g., National Suicide Prevention Lifeline: 988 in the US) BEFORE any other response.
-2. It's normal for Current Emotion to differ from Baseline. Respond primarily to their current emotional state while being mindful of their baseline condition.
-2. Always remind users that you are an AI assistant and cannot replace professional mental health care from licensed therapists or psychiatrists.
-3. Respond with warmth, positivity, and hope. If the context lacks relevant information, acknowledge this and recommend consulting a mental health professional.
-4. Respect cultural and individual differences in mental health experiences.
-5. Never provide medical diagnoses; instead, suggest symptoms to discuss with a healthcare provider.
+SAFETY RULES:
+1. "Suicidal" emotion → immediately provide: 988 (US), 1925 (Vietnam), and urge professional contact.
+2. Never give medical diagnoses. Suggest consulting a professional when appropriate.
+3. Always clarify you are an AI and cannot replace a licensed mental health professional.
+4. Respond with warmth, positivity, and hope. Respect cultural and individual differences.
 
-Retrieved context for reference:
+Retrieved context for reference (RAG):
 {context}"""
             
             prompt_template = ChatPromptTemplate.from_messages([
@@ -174,9 +208,9 @@ Retrieved context for reference:
                 "context": context,
                 "chat_history": chat_history,
                 "query": expanded_query,
-                "baseline_severity": baseline_severity,
-                "baseline_issue": baseline_issue,
-                "realtime_status": realtime_status
+                "baseline_severity": _severity,
+                "baseline_issue": _issue,
+                "realtime_block": realtime_block_en,
             })
         
         # Save to chat history
