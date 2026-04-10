@@ -5,7 +5,7 @@ Handles chat requests and integrates LLM RAG with mental health assessment.
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 import sys
 import os
 
@@ -21,12 +21,18 @@ from services.nlp_sentiment_analysis.nlp_utils import classify_text, get_crisis_
 
 router = APIRouter()
 
+class Message(BaseModel):
+    role: str
+    content: str
+
 class ChatRequest(BaseModel):
     """Chat request schema"""
     message: str
     user_id: Optional[str] = None
-    severe_level: Optional[str] = None  # From assessment: 'Normal', 'Mild', 'Moderate', 'Severe'
-    mental_status: Optional[str] = None  # From NLP: 'Anxiety', 'Depression', 'Normal', etc.
+    baseline_severity: Optional[str] = "Normal"
+    baseline_issue: Optional[str] = "None"
+    realtime_status: Optional[str] = "Normal"
+    history: Optional[List[Message]] = []
 
 class ChatResponse(BaseModel):
     """Chat response schema"""
@@ -60,8 +66,9 @@ def get_rag_chat_response(request: ChatRequest) -> ChatResponse:
             user_query=request.message,
             expanded_query=expanded_query,
             retriever=retriever,
-            severe_level=request.severe_level or "Normal",
-            mental_status=request.mental_status or "Normal",
+            baseline_severity=request.baseline_severity or "Normal",
+            baseline_issue=request.baseline_issue or "None",
+            realtime_status=request.realtime_status or "Normal",
             is_vietnamese=is_vietnamese
         )
         
@@ -96,6 +103,10 @@ async def handle_chat(request: ChatRequest) -> ChatResponse:
             requires_crisis_support=True
         )
     
+    # If the active message says something serious, override realtime_status for safety
+    if detected_label == "Suicidal":
+        request.realtime_status = "Suicidal"
+
     # Try to use RAG service
     rag_response = get_rag_chat_response(request)
     if rag_response:
@@ -106,12 +117,13 @@ async def handle_chat(request: ChatRequest) -> ChatResponse:
         )
     
     # Fallback: Generate mock response
-    severe_level = request.severe_level or "Normal"
-    mental_status = request.mental_status or detected_label
+    baseline_severity = request.baseline_severity or "Normal"
+    realtime_status = request.realtime_status or detected_label
     
     reply = f"""Thank you for sharing. I hear you. 💚
 
-Based on our conversation, I understand you're dealing with {mental_status.lower()}.
+Based on our conversation, I understand you're dealing with {realtime_status.lower()} right now.
+We also acknowledge your recent baseline of {baseline_severity}.
 
 Here are some things we can explore together:
 - **Breathing techniques** for immediate relief
@@ -120,7 +132,7 @@ Here are some things we can explore together:
 
 What would be most helpful for you right now?
 
-*Your severity level: {severe_level} | Detected concern: {mental_status}*"""
+*Your severity level: {baseline_severity} | Detected concern: {realtime_status}*"""
     
     return ChatResponse(
         reply=reply,

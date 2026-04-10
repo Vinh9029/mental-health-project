@@ -90,7 +90,7 @@ class ResponseGenerator:
         expanded = chain.invoke({"query": user_query})
         return user_query, expanded.strip()
 
-    def generate_response(self, user_query: str, expanded_query: str, retriever, severe_level: str, mental_status: str, is_vietnamese: bool = False) -> str:
+    def generate_response(self, user_query: str, expanded_query: str, retriever, baseline_severity: str, baseline_issue: str, realtime_status: str, is_vietnamese: bool = False) -> str:
         """
         OPTIMIZED (LLM Call #2):
         - Generate mental health response ONLY in detected language
@@ -100,8 +100,9 @@ class ResponseGenerator:
             user_query: Original user query (for memory)
             expanded_query: Expanded/translated query for retrieval
             retriever: Vector store retriever
-            severe_level: Mental health severity level
-            mental_status: Mental health condition type
+            baseline_severity: Mental health severity level from Active test
+            baseline_issue: Mental health condition from Active test
+            realtime_status: NLP classification from Passive test
             is_vietnamese: Whether response should be in Vietnamese
         """
         docs = retriever.invoke(expanded_query)
@@ -112,14 +113,15 @@ class ResponseGenerator:
             # Generate ONLY in Vietnamese (no English generation waste)
             system_prompt = """⚠️ NGÔN NGỮ BẮTBUỘC: Bạn PHẢI trả lời 100% bằng tiếng VIỆT. Không được dùng tiếng Anh hoặc ngôn ngữ khác. LUÔN luôn dùng tiếng Việt.
 
-Bạn là một trợ lý hỗ trợ sức khỏe tâm thần thông tuệ, thông cảm và không phán xét.
+Bạn là một trợ lý hỗ trợ sức khỏe tâm thần thông tuệ, thông cảm và không phán xét. Tên của bạn là MindCare AI.
 Vai trò của bạn là cung cấp lời khuyên dựa trên bằng chứng, bài tập liệu pháp và chiến lược đối phó dựa trên bối cảnh được cung cấp.
 
-Mức độ nghiêm trọng của người dùng: {severe_level}
-Trạng thái sức khỏe tâm thần: {mental_status}
+[Baseline 2 tuần qua: {baseline_severity} - {baseline_issue}]
+[Cảm xúc hiện tại: {realtime_status}]
 
 QUY TẮC AN TOÀN QUAN TRỌNG:
-1. Nếu người dùng cho thấy dấu hiệu tự tổn thương hoặc tự sát, HÃY NGAY LẬP TỨC cung cấp số điện thoại đường dây nóng khủng hoảng (ví dụ: 1925 - Đường dây nóng tâm lý tại Việt Nam) TRƯỚC khi đưa ra bất kỳ phản hồi nào khác. Phải trả lời bằng tiếng VIỆT.
+1. Nếu người dùng cho thấy dấu hiệu tự tổn thương hoặc tự sát (bao gồm cả Cảm xúc hiện tại là Suicidal), HÃY NGAY LẬP TỨC cung cấp số điện thoại đường dây nóng khủng hoảng (ví dụ: 1925 - Đường dây nóng tâm lý tại Việt Nam) TRƯỚC khi đưa ra bất kỳ phản hồi nào khác. Phải trả lời bằng tiếng VIỆT.
+2. Việc Cảm xúc hiện tại khác với Baseline là bình thường. Cần linh hoạt phản hồi với cảm xúc hiện tại nhưng vẫn không quên bệnh án nền (Baseline).
 2. Luôn nhắc nhở người dùng rằng bạn là một trợ lý AI và không thể thay thế chăm sóc sức khỏe tâm thần chuyên nghiệp từ các bác sĩ tâm lý có giấy phép.
 3. Phản hồi với sự ấm áp, tích cực và lạc quan. Nếu bối cảnh thiếu thông tin có liên quan, hãy thừa nhận điều này và khuyến nghị tham khảo ý kiến chuyên gia sức khỏe tâm thần.
 4. Tôn trọng sự khác biệt về văn hóa và cá nhân trong trải nghiệm sức khỏe tâm thần.
@@ -138,20 +140,22 @@ Bối cảnh truy xuất để tham khảo:
                 "context": context,
                 "chat_history": chat_history,
                 "query": expanded_query,
-                "severe_level": severe_level,
-                "mental_status": mental_status
+                "baseline_severity": baseline_severity,
+                "baseline_issue": baseline_issue,
+                "realtime_status": realtime_status
             })
         
         else:
             # English only (single LLM call)
-            system_prompt = """You are a compassionate, empathetic, and non-judgmental Virtual Assistant for Mental Health Support.
+            system_prompt = """You are a compassionate, empathetic, and non-judgmental Virtual Assistant for Mental Health Support named MindCare AI.
 Your role is to provide evidence-based advice, therapeutic exercises, and coping strategies based on the provided context.
 
-User's severe level: {severe_level}
-User's mental health status: {mental_status}
+[Past 2 Weeks Baseline: {baseline_severity} - {baseline_issue}]
+[Current Real-time Emotion: {realtime_status}]
 
 CRITICAL SAFETY RULES:
-1. If the user shows signs of suicidal ideation or self-harm, IMMEDIATELY provide crisis helpline numbers (e.g., National Suicide Prevention Lifeline: 988 in the US, or equivalent in the user's country) BEFORE any other response.
+1. If the user shows signs of suicidal ideation or self-harm (including Current Emotion being Suicidal), IMMEDIATELY provide crisis helpline numbers (e.g., National Suicide Prevention Lifeline: 988 in the US) BEFORE any other response.
+2. It's normal for Current Emotion to differ from Baseline. Respond primarily to their current emotional state while being mindful of their baseline condition.
 2. Always remind users that you are an AI assistant and cannot replace professional mental health care from licensed therapists or psychiatrists.
 3. Respond with warmth, positivity, and hope. If the context lacks relevant information, acknowledge this and recommend consulting a mental health professional.
 4. Respect cultural and individual differences in mental health experiences.
@@ -170,8 +174,9 @@ Retrieved context for reference:
                 "context": context,
                 "chat_history": chat_history,
                 "query": expanded_query,
-                "severe_level": severe_level,
-                "mental_status": mental_status
+                "baseline_severity": baseline_severity,
+                "baseline_issue": baseline_issue,
+                "realtime_status": realtime_status
             })
         
         # Save to chat history

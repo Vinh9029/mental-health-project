@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { User, Shield, Heart, Sparkles, Save, Sun, Moon } from "lucide-react";
+import { User, Shield, Heart, Sparkles, Save, Sun, Moon, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,7 +26,13 @@ export default function Profile() {
   const [selectedAvatar, setSelectedAvatar] = useState("avatar-calm");
   const [baselineLevel, setBaselineLevel] = useState("Normal");
   const [primaryIssue, setPrimaryIssue] = useState("None");
+  const [realtimeStatus, setRealtimeStatus] = useState<string | null>(null);
+  const [realtimeConfidence, setRealtimeConfidence] = useState<number | null>(null);
   const [lastAssessmentDate, setLastAssessmentDate] = useState<string | null>(null);
+  const [phq9Score, setPhq9Score] = useState<number | null>(null);
+  const [gad7Score, setGad7Score] = useState<number | null>(null);
+  const [phq9Severity, setPhq9Severity] = useState<string | null>(null);
+  const [gad7Severity, setGad7Severity] = useState<string | null>(null);
   const [copingMethods, setCopingMethods] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -45,7 +51,15 @@ export default function Profile() {
         setSelectedAvatar(data.avatar_url || "avatar-calm");
         setBaselineLevel((data as any).baseline_level || "Normal");
         setPrimaryIssue((data as any).primary_issue || "None");
+        setRealtimeStatus((data as any).realtime_status || null);
+        setRealtimeConfidence((data as any).realtime_confidence || null);
         setLastAssessmentDate((data as any).last_assessment_date || null);
+        // Derive approximate scores from stored severity for display
+        // (exact scores not stored in profiles table, only severity labels)
+        setPhq9Severity((data as any).phq9_severity || null);
+        setGad7Severity((data as any).gad7_severity || null);
+        setPhq9Score((data as any).phq9_score ?? null);
+        setGad7Score((data as any).gad7_score ?? null);
       }
 
       // Fetch user state (coping methods)
@@ -166,18 +180,136 @@ export default function Profile() {
               <Shield className="h-5 w-5 text-primary" />
               <h2 className="font-heading text-lg font-semibold text-card-foreground">Assessment Overview</h2>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-secondary rounded-xl p-4">
-                <p className="text-xs text-muted-foreground">Baseline Level</p>
-                <p className={`text-lg font-bold font-heading ${severityColor[baselineLevel] || "text-foreground"}`}>
-                  {baselineLevel}
+            <div className="space-y-4">
+              {/* Active Baseline */}
+              <div className="border border-border rounded-xl p-4 bg-background">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center justify-between">
+                  <span>Clinical Baseline</span>
+                  <span className="bg-secondary px-2 py-0.5 rounded-full text-[10px]">PHQ-9 + GAD-7 · Past 2 Weeks</span>
                 </p>
+
+                {/* PHQ-9 and GAD-7 rows */}
+                {(phq9Score !== null || phq9Severity) ? (
+                  <div className="space-y-3 mb-3">
+                    {/* PHQ-9 */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-muted-foreground">Depression (PHQ-9)</span>
+                        <div className="flex items-center gap-2">
+                          {phq9Score !== null && (
+                            <span className="text-xs font-bold text-foreground">{phq9Score}/27</span>
+                          )}
+                          {phq9Severity && (
+                            <span className={`text-xs font-bold ${severityColor[phq9Severity] || "text-foreground"}`}>{phq9Severity}</span>
+                          )}
+                        </div>
+                      </div>
+                      {phq9Score !== null && (
+                        <div className="h-1.5 w-full bg-border rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${(phq9Score / 27) * 100}%`,
+                              background: phq9Score <= 4 ? "var(--primary)" : phq9Score <= 9 ? "#f59e0b" : phq9Score <= 14 ? "#f97316" : "#ef4444"
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* GAD-7 */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-muted-foreground">Anxiety (GAD-7)</span>
+                        <div className="flex items-center gap-2">
+                          {gad7Score !== null && (
+                            <span className="text-xs font-bold text-foreground">{gad7Score}/21</span>
+                          )}
+                          {gad7Severity && (
+                            <span className={`text-xs font-bold ${severityColor[gad7Severity] || "text-foreground"}`}>{gad7Severity}</span>
+                          )}
+                        </div>
+                      </div>
+                      {gad7Score !== null && (
+                        <div className="h-1.5 w-full bg-border rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${(gad7Score / 21) * 100}%`,
+                              background: gad7Score <= 4 ? "var(--primary)" : gad7Score <= 9 ? "#f59e0b" : gad7Score <= 14 ? "#f97316" : "#ef4444"
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  // Fallback: only stored baseline_level / primary_issue available
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="bg-secondary/50 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">Baseline Level</p>
+                      <p className={`text-lg font-bold font-heading ${severityColor[baselineLevel] || "text-foreground"}`}>
+                        {baselineLevel}
+                      </p>
+                    </div>
+                    <div className="bg-secondary/50 rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground">Primary Issue</p>
+                      <p className="text-lg font-bold font-heading text-foreground">
+                        {primaryIssue === "None" ? "\u2014" : primaryIssue}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Summary row */}
+                <div className="flex items-center justify-between bg-primary/5 rounded-lg px-3 py-2 border border-primary/20">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Overall Severity</p>
+                    <p className={`text-sm font-bold ${severityColor[baselineLevel] || "text-foreground"}`}>{baselineLevel}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Dominant Concern</p>
+                    <p className="text-sm font-bold">{primaryIssue === "None" ? "\u2014" : primaryIssue}</p>
+                  </div>
+                </div>
               </div>
-              <div className="bg-secondary rounded-xl p-4">
-                <p className="text-xs text-muted-foreground">Primary Issue</p>
-                <p className="text-lg font-bold font-heading text-foreground">
-                  {primaryIssue === "None" ? "—" : primaryIssue}
+
+              {/* Passive Real-time */}
+              <div className="border border-border rounded-xl p-4 bg-background">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center justify-between">
+                  <span>AI Sentiment Analysis</span>
+                  <span className="bg-secondary px-2 py-0.5 rounded-full text-[10px]">BERT NLP</span>
                 </p>
+                {realtimeStatus ? (
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Brain className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-base font-bold font-heading text-foreground flex items-center gap-2">
+                        {realtimeStatus}
+                        {realtimeStatus === "Suicidal" && <span className="text-destructive text-sm">🚨 Red Flag</span>}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Detected emotional pattern</p>
+                      {realtimeConfidence !== null && (
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <div className="h-1.5 flex-1 bg-secondary rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-primary rounded-full"
+                              style={{ width: `${realtimeConfidence * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-bold whitespace-nowrap">{(realtimeConfidence * 100).toFixed(0)}%</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <Brain className="h-4 w-4 shrink-0" />
+                    <p className="text-xs">Complete the assessment with text responses to enable AI sentiment analysis.</p>
+                  </div>
+                )}
               </div>
             </div>
             {lastAssessmentDate && (

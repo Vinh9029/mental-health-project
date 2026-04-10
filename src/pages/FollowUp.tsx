@@ -1,90 +1,4 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-// Chatbot conversation history type
-type ChatMessage = {
-  sender: "user" | "bot";
-  text: string;
-};
-// --- Chatbot Conversation State ---
-const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-const [chatInput, setChatInput] = useState("");
-const [isBotTyping, setIsBotTyping] = useState(false);
-const chatEndRef = useRef<HTMLDivElement>(null);
-
-// Scroll to bottom on new message
-useEffect(() => {
-  if (chatEndRef.current) {
-    chatEndRef.current.scrollIntoView({ behavior: "smooth" });
-  }
-}, [chatHistory]);
-
-// Send message to chatbot (dummy implementation, replace with real API call)
-async function sendMessageToBot(message: string) {
-  setIsBotTyping(true);
-  setChatHistory((prev) => [...prev, { sender: "user", text: message }]);
-  try {
-    const response = await fetch("http://localhost:8000/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
-    });
-    let botReply = "Sorry, no response.";
-    if (response.ok) {
-      const data = await response.json();
-      // Support multiple possible keys from backend
-      botReply = data.result || data.reply || data.text || "(No reply)";
-    } else {
-      botReply = "Chatbot service error.";
-    }
-    setChatHistory((prev) => [...prev, { sender: "bot", text: botReply }]);
-  } catch (err) {
-    setChatHistory((prev) => [...prev, { sender: "bot", text: "Error contacting chatbot." }]);
-  }
-  setIsBotTyping(false);
-}
-// --- Chatbot UI Section ---
-const renderChatbotSection = () => (
-  <div className="bg-card rounded-2xl p-6 card-elevated mb-8">
-    <h3 className="font-heading text-lg font-bold mb-4 text-card-foreground">Chatbot Conversation</h3>
-    <div className="h-64 overflow-y-auto border rounded-xl p-3 bg-background mb-3">
-      {chatHistory.length === 0 && (
-        <div className="text-muted-foreground text-sm text-center mt-16">No messages yet. Start the conversation!</div>
-      )}
-      {chatHistory.map((msg, idx) => (
-        <div key={idx} className={`flex mb-2 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-          <div className={`px-4 py-2 rounded-xl max-w-[70%] ${msg.sender === "user" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
-            {msg.text}
-          </div>
-        </div>
-      ))}
-      {isBotTyping && (
-        <div className="flex justify-start mb-2">
-          <div className="px-4 py-2 rounded-xl bg-secondary text-foreground opacity-70">...
-          </div>
-        </div>
-      )}
-      <div ref={chatEndRef} />
-    </div>
-    <form
-      className="flex gap-2"
-      onSubmit={e => {
-        e.preventDefault();
-        if (chatInput.trim()) {
-          sendMessageToBot(chatInput.trim());
-          setChatInput("");
-        }
-      }}
-    >
-      <input
-        className="flex-1 border rounded-xl px-3 py-2 text-sm bg-background"
-        placeholder="Type your message..."
-        value={chatInput}
-        onChange={e => setChatInput(e.target.value)}
-        disabled={isBotTyping}
-      />
-      <Button type="submit" variant="hero" disabled={isBotTyping || !chatInput.trim()}>Send</Button>
-    </form>
-  </div>
-);
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, CheckCircle, MessageSquare, Brain } from "lucide-react";
@@ -94,6 +8,13 @@ import { calculateBaseline, useAppStore } from "@/store/useAppStore";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
+import CrisisFloatbox from "@/components/CrisisFloatbox";
+
+// Chatbot conversation history type
+type ChatMessage = {
+  sender: "user" | "bot";
+  text: string;
+};
 
 // ── Follow-up Questions Pool ──
 const CONVERSATION_QUESTIONS: Record<string, Record<string, string[]>> = {
@@ -240,6 +161,10 @@ export default function FollowUp() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [textAnswers, setTextAnswers] = useState<string[]>(["", "", ""]);
   const [submitted, setSubmitted] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showCrisisWarning, setShowCrisisWarning] = useState(false);
+  // Local display state — stable copy of final result for rendering
+  const [displayResult, setDisplayResult] = useState<any>(null);
 
   const phq9Score = scaleAnswers ? scaleAnswers.slice(0, 9).reduce((a, b) => a + b, 0) : 0;
   const gad7Score = scaleAnswers ? scaleAnswers.slice(9).reduce((a, b) => a + b, 0) : 0;
@@ -256,7 +181,9 @@ export default function FollowUp() {
 
   const submit = async () => {
     if (!assessmentResult) return;
-    setSubmitted(true);
+    
+    // Show analyzing loading screen instead of results right away
+    setIsAnalyzing(true);
 
     let finalAssessmentResult = { ...assessmentResult };
     
@@ -289,14 +216,16 @@ export default function FollowUp() {
             "Normal": "None"
           };
           
-          // Override primaryIssue with BERT result
-          const mentalStatus = bertToMentalStatus[sentimentData.label] || sentimentData.label;
           finalAssessmentResult = {
             ...finalAssessmentResult,
-            primaryIssue: mentalStatus as any,  // Override with BERT classification
-            label: sentimentData.label,  // Store original BERT label
-            confidence: sentimentData.confidence
+            realtimeStatus: sentimentData.label,
+            realtimeConfidence: sentimentData.confidence,
+            probabilities: sentimentData.probabilities
           };
+          
+          if (sentimentData.label === "Suicidal") {
+            setShowCrisisWarning(true);
+          }
           
           console.log("✅ Updated assessment with BERT:", finalAssessmentResult);
         } else {
@@ -309,6 +238,7 @@ export default function FollowUp() {
     }
     
     setAssessmentResult(finalAssessmentResult);
+    setDisplayResult(finalAssessmentResult); // stable copy for rendering
 
     if (user) {
       await supabase
@@ -316,10 +246,19 @@ export default function FollowUp() {
         .update({
           baseline_level: finalAssessmentResult.overallBaseline,
           primary_issue: finalAssessmentResult.primaryIssue,
+          realtime_status: finalAssessmentResult.realtimeStatus,
+          realtime_confidence: finalAssessmentResult.realtimeConfidence,
+          phq9_score: finalAssessmentResult.phq9Score,
+          phq9_severity: finalAssessmentResult.phq9Severity,
+          gad7_score: finalAssessmentResult.gad7Score,
+          gad7_severity: finalAssessmentResult.gad7Severity,
           last_assessment_date: new Date().toISOString(),
         } as any)
         .eq("user_id", user.id);
     }
+    
+    setIsAnalyzing(false);
+    setSubmitted(true);
   };
 
   const severityColor: Record<string, string> = {
@@ -340,6 +279,46 @@ export default function FollowUp() {
         <div className="container mx-auto max-w-2xl">
 
           {!submitted ? (
+            isAnalyzing ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-card rounded-2xl p-12 card-elevated text-center flex flex-col items-center justify-center min-h-[400px]"
+              >
+                <div className="relative w-24 h-24 mb-8 mx-auto">
+                  {/* Outer spinning ring */}
+                  <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
+                  <motion.div 
+                    className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent"
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+                  />
+                  {/* Center icon bouncing */}
+                  <motion.div 
+                    className="absolute inset-0 flex items-center justify-center"
+                    animate={{ scale: [0.9, 1.1, 0.9] }}
+                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                  >
+                    <Brain className="h-10 w-10 text-primary" />
+                  </motion.div>
+                </div>
+                
+                <h2 className="font-heading text-2xl font-bold text-card-foreground mb-3">
+                  Analyzing Using AI...
+                </h2>
+                <div className="flex flex-col gap-2 items-center text-muted-foreground w-full max-w-sm mx-auto">
+                  <p>Processing your responses with MindCare BERT model</p>
+                  <div className="w-full h-1.5 bg-secondary rounded-full mt-4 overflow-hidden">
+                    <motion.div 
+                      className="h-full bg-primary hero-gradient rounded-full"
+                      initial={{ width: "0%" }}
+                      animate={{ width: "100%" }}
+                      transition={{ duration: 3, ease: "easeInOut", repeat: Infinity }}
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
             <>
               {/* Header with AI avatar */}
               <motion.div
@@ -353,7 +332,7 @@ export default function FollowUp() {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-heading text-lg font-semibold text-foreground">Viki wants to know more</p>
+                  <p className="font-heading text-lg font-semibold text-foreground">MindCare wants to know more</p>
                   <p className="text-sm text-muted-foreground">Share your thoughts — your responses help personalize your care.</p>
                 </div>
               </motion.div>
@@ -448,9 +427,10 @@ export default function FollowUp() {
                 )}
               </div>
             </>
+            )
           ) : (
-            /* Results */
-            assessmentResult && (
+            /* Results — use displayResult (stable local copy) instead of store assessmentResult */
+            displayResult && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -464,88 +444,179 @@ export default function FollowUp() {
                 </h2>
                 <p className="text-muted-foreground mb-8">Here are your results:</p>
 
-                <div className="grid grid-cols-2 gap-4 mb-8">
-                  <div className="bg-secondary rounded-xl p-5">
-                    <p className="text-sm text-muted-foreground">Depression (PHQ-9)</p>
-                    <p className="text-2xl font-bold font-heading text-foreground">{assessmentResult.phq9Score}/27</p>
-                    <p className={`text-sm font-medium ${severityColor[assessmentResult.phq9Severity]}`}>
-                      {assessmentResult.phq9Severity}
-                    </p>
-                  </div>
-                  <div className="bg-secondary rounded-xl p-5">
-                    <p className="text-sm text-muted-foreground">Anxiety (GAD-7)</p>
-                    <p className="text-2xl font-bold font-heading text-foreground">{assessmentResult.gad7Score}/21</p>
-                    <p className={`text-sm font-medium ${severityColor[assessmentResult.gad7Severity]}`}>
-                      {assessmentResult.gad7Severity}
-                    </p>
-                  </div>
-                </div>
+                {/* 1. Active Baseline Profile — PHQ-9 + GAD-7 independently */}
+                <div className="mb-6 border-2 border-border rounded-xl p-5 bg-background text-left">
+                  <h3 className="font-heading text-lg font-bold text-foreground mb-4 border-b pb-2 flex items-center justify-between">
+                    <span>Clinical Baseline</span>
+                    <span className="text-xs font-normal text-muted-foreground bg-secondary px-2 py-1 rounded-full">Past 2 Weeks · PHQ-9 + GAD-7</span>
+                  </h3>
 
-                <div className="bg-secondary rounded-xl p-5 mb-8">
-                  <p className="text-sm text-muted-foreground">Overall Assessment</p>
-                  <p className={`text-xl font-bold font-heading ${severityColor[assessmentResult.overallBaseline]}`}>
-                    {assessmentResult.overallBaseline}
-                  </p>
-                  {assessmentResult.primaryIssue !== "None" && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Primary concern: {assessmentResult.primaryIssue}
-                    </p>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    {/* PHQ-9 */}
+                    <div className="bg-secondary rounded-xl p-4 text-center flex flex-col gap-1">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Depression</p>
+                      <p className="text-xs text-muted-foreground">PHQ-9</p>
+                      <p className="text-2xl font-bold font-heading text-foreground">
+                        {displayResult.phq9Score}
+                        <span className="text-sm font-normal text-muted-foreground">/27</span>
+                      </p>
+                      {/* Score bar */}
+                      <div className="h-1.5 w-full bg-border rounded-full overflow-hidden mt-1">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${(displayResult.phq9Score / 27) * 100}%`,
+                            background: displayResult.phq9Score <= 4 ? "var(--primary)" : displayResult.phq9Score <= 9 ? "#f59e0b" : displayResult.phq9Score <= 14 ? "#f97316" : "#ef4444"
+                          }}
+                        />
+                      </div>
+                      <p className={`text-xs font-bold mt-1 ${severityColor[displayResult.phq9Severity]}`}>
+                        {displayResult.phq9Severity}
+                      </p>
+                    </div>
+
+                    {/* GAD-7 */}
+                    <div className="bg-secondary rounded-xl p-4 text-center flex flex-col gap-1">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Anxiety</p>
+                      <p className="text-xs text-muted-foreground">GAD-7</p>
+                      <p className="text-2xl font-bold font-heading text-foreground">
+                        {displayResult.gad7Score}
+                        <span className="text-sm font-normal text-muted-foreground">/21</span>
+                      </p>
+                      {/* Score bar */}
+                      <div className="h-1.5 w-full bg-border rounded-full overflow-hidden mt-1">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${(displayResult.gad7Score / 21) * 100}%`,
+                            background: displayResult.gad7Score <= 4 ? "var(--primary)" : displayResult.gad7Score <= 9 ? "#f59e0b" : displayResult.gad7Score <= 14 ? "#f97316" : "#ef4444"
+                          }}
+                        />
+                      </div>
+                      <p className={`text-xs font-bold mt-1 ${severityColor[displayResult.gad7Severity]}`}>
+                        {displayResult.gad7Severity}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Overall summary */}
+                  <div className="flex items-center justify-between bg-primary/5 rounded-lg p-3 border border-primary/20">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Overall Severity</p>
+                      <p className={`text-sm font-bold ${severityColor[displayResult.overallBaseline]}`}>{displayResult.overallBaseline}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Dominant Concern</p>
+                      <p className="text-sm font-bold">
+                        {displayResult.primaryIssue === "None" ? "—" : displayResult.primaryIssue}
+                        {displayResult.phq9Score > 4 && displayResult.gad7Score > 4 && (
+                          <span className="block text-[10px] font-normal text-muted-foreground">Both present</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {displayResult.phq9Q9Score !== undefined && displayResult.phq9Q9Score > 0 && (
+                    <div className="mt-3 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded text-sm">
+                      <strong className="flex items-center gap-1">🚨 Red Flag (PHQ-9 Q9)</strong>
+                      You indicated thoughts of self-harm (Score: {displayResult.phq9Q9Score}/3).
+                    </div>
                   )}
                 </div>
 
-                {/* Sentiment Analysis Results */}
-                {assessmentResult.label && (
-                  <div className="bg-secondary rounded-xl p-5 mb-8">
-                    <p className="text-sm text-muted-foreground mb-2">Sentiment Analysis (AI)</p>
-                    <div className="flex flex-col items-center gap-2">
-                      <span className="text-lg font-bold">{assessmentResult.label}</span>
-                      <span className="text-xs text-muted-foreground">Dominant Emotion</span>
-                      {assessmentResult.confidence !== undefined && (
-                        <span className="text-xs text-muted-foreground">Confidence: {(assessmentResult.confidence * 100).toFixed(1)}%</span>
+                {/* 2. NLP Real-time Analysis — always shown */}
+                <div className="mb-6 border-2 border-border rounded-xl p-5 bg-background text-left">
+                  <h3 className="font-heading text-lg font-bold text-foreground mb-4 border-b pb-2 flex items-center justify-between">
+                    <span>AI Sentiment Analysis</span>
+                    <span className="text-xs font-normal text-muted-foreground bg-secondary px-2 py-1 rounded-full">From your text · BERT NLP</span>
+                  </h3>
+
+                  {displayResult.realtimeStatus ? (
+                    <>
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="h-14 w-14 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Brain className="h-7 w-7 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xl font-bold font-heading leading-none mb-1">{displayResult.realtimeStatus}</p>
+                          <p className="text-xs text-muted-foreground">Detected emotional pattern from your responses</p>
+                          {displayResult.realtimeConfidence !== undefined && (
+                            <div className="flex items-center gap-2 mt-2">
+                              <div className="h-1.5 flex-1 bg-secondary rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-primary rounded-full"
+                                  style={{ width: `${displayResult.realtimeConfidence * 100}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-bold whitespace-nowrap">
+                                {(displayResult.realtimeConfidence * 100).toFixed(0)}% confidence
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Probability breakdown */}
+                      {displayResult.probabilities && Object.keys(displayResult.probabilities).length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-xs text-muted-foreground mb-2">Probability breakdown:</p>
+                          <div className="space-y-1.5">
+                            {Object.entries(displayResult.probabilities as Record<string, number>)
+                              .sort(([, a], [, b]) => b - a)
+                              .map(([label, prob]) => (
+                                <div key={label} className="flex items-center gap-2">
+                                  <span className="text-xs w-32 shrink-0 text-muted-foreground">{label}</span>
+                                  <div className="h-1.5 flex-1 bg-secondary rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-primary/70 rounded-full"
+                                      style={{ width: `${(prob as number) * 100}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-xs font-medium w-10 text-right">{((prob as number) * 100).toFixed(1)}%</span>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
                       )}
+
+                      {displayResult.realtimeStatus === "Suicidal" && (
+                        <div className="mt-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded text-sm w-full">
+                          <strong>🚨 Immediate Help Needed!</strong><br />
+                          We detected signs of suicidal thoughts. Please reach out to a crisis hotline:<br />
+                          <b>Vietnam: 1925</b> | <b>US: 988</b> | <b>UK: 116 123</b>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
+                      <Brain className="h-5 w-5 text-muted-foreground shrink-0" />
+                      <p className="text-sm text-muted-foreground">
+                        No text was provided — AI sentiment analysis was skipped. Your score-based baseline above still applies.
+                      </p>
                     </div>
-                    {/* Probabilities if available */}
-                    {assessmentResult.probabilities && (
-                      <div className="mt-3">
-                        <p className="text-xs text-muted-foreground mb-1">All Sentiment Probabilities:</p>
-                        <div className="flex flex-wrap gap-2 justify-center">
-                          {Object.entries(assessmentResult.probabilities).map(([k, v]) => (
-                            <span key={k} className="px-2 py-1 bg-gray-100 rounded text-xs">
-                              {k}: {(v * 100).toFixed(1)}%
-                            </span>
-                          ))}
-                        </div>
-                        {/* Average Sentiment Score */}
-                        <div className="mt-2 text-xs text-muted-foreground">
-                          Average Sentiment: {(
-                            Object.values(assessmentResult.probabilities).reduce((a, b) => a + b, 0) /
-                            Object.values(assessmentResult.probabilities).length
-                          ).toFixed(2)}
-                        </div>
-                      </div>
-                    )}
-                    {/* Suicidal warning */}
-                    {assessmentResult.label === "Suicidal" && (
-                      <div className="mt-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded">
-                        <strong>🚨 Immediate Help Needed!</strong><br />
-                        We detected signs of suicidal thoughts. Please reach out to a crisis hotline:<br />
-                        <b>Vietnam: 1925</b> | <b>US: 988</b> | <b>UK: 116 123</b>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
 
                 <p className="text-xs text-muted-foreground mb-6">
-                  This screening is not a diagnosis. Please consult a mental health professional for clinical evaluation.
+                  This screening is not a clinical diagnosis. Please consult a mental health professional for a formal evaluation.
                 </p>
 
-                {/* Chatbot Conversation Section */}
-                {renderChatbotSection()}
+                <div className="mt-4">
+                  <Button
+                    variant="hero"
+                    className="w-full sm:w-auto px-8 py-6 text-lg rounded-2xl"
+                    onClick={() => navigate("/chat")}
+                  >
+                    <MessageSquare className="h-6 w-6 mr-2" />
+                    Speak with MindCare AI
+                  </Button>
+                </div>
               </motion.div>
             )
           )}
         </div>
       </div>
+      <CrisisFloatbox isOpen={showCrisisWarning} onClose={() => setShowCrisisWarning(false)} />
     </div>
   );
 }

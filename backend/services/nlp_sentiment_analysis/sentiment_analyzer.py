@@ -49,8 +49,8 @@ class BertSentimentAnalyzer:
             
             # Load trained BERT model from local path
             model_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
-                "services", "nlp_sentiment_analysis", "model", "bert", "bert_model_full"
+                os.path.dirname(__file__),
+                "model", "bert", "bert_model_full"
             )
             
             self.tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
@@ -78,6 +78,20 @@ class BertSentimentAnalyzer:
                 "probabilities": {...}
             }
         """
+        # Sàn lọc nhanh (Fast screening) for crisis intents bypassing the BERT model
+        try:
+            from services.nlp_sentiment_analysis.nlp_utils import classify_text
+            if classify_text(text) == "Suicidal":
+                return {
+                    "label": "Suicidal",
+                    "label_id": self.REVERSE_LABEL_MAP["Suicidal"],
+                    "confidence": 1.0,
+                    "probabilities": {},
+                    "method": "fast_crisis_detection"
+                }
+        except ImportError:
+            pass
+
         if not self.load_model():
             return self.classify_with_keywords(text)
         
