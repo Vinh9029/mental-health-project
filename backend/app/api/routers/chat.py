@@ -33,6 +33,11 @@ class ChatRequest(BaseModel):
     baseline_issue: Optional[str] = "None"
     realtime_status: Optional[str] = "Normal"
     history: Optional[List[Message]] = []
+    # Clinical detail (optional — sent from Profile / FollowUp pages)
+    phq9_score: Optional[int] = None
+    phq9_severity: Optional[str] = None
+    gad7_score: Optional[int] = None
+    gad7_severity: Optional[str] = None
 
 class ChatResponse(BaseModel):
     """Chat response schema"""
@@ -80,7 +85,11 @@ def get_rag_chat_response(request: ChatRequest) -> ChatResponse:
             baseline_severity=request.baseline_severity or "Normal",
             baseline_issue=request.baseline_issue or "None",
             realtime_status=request.realtime_status or "Normal",
-            is_vietnamese=is_vietnamese
+            is_vietnamese=is_vietnamese,
+            phq9_score=request.phq9_score,
+            phq9_severity=request.phq9_severity,
+            gad7_score=request.gad7_score,
+            gad7_severity=request.gad7_severity,
         )
         
         return ChatResponse(reply=reply)

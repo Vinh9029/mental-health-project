@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, CheckCircle, MessageSquare, Brain } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle, MessageSquare, Brain, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { calculateBaseline, useAppStore } from "@/store/useAppStore";
@@ -231,6 +231,9 @@ export default function FollowUp() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             text_responses: textAnswers,
+            // Pass matched questions so backend can build "Q: ... A: ..." pairs
+            // for richer BERT context instead of concatenating raw answers only
+            questions: followUpQuestions,
             user_id: user?.id || "anonymous"
           })
         });
@@ -275,20 +278,24 @@ export default function FollowUp() {
     setDisplayResult(finalAssessmentResult); // stable copy for rendering
 
     if (user) {
-      await supabase
+      const { error: dbError } = await supabase
         .from("profiles")
         .update({
-          baseline_level: finalAssessmentResult.overallBaseline,
-          primary_issue: finalAssessmentResult.primaryIssue,
-          realtime_status: finalAssessmentResult.realtimeStatus,
-          realtime_confidence: finalAssessmentResult.realtimeConfidence,
-          phq9_score: finalAssessmentResult.phq9Score,
-          phq9_severity: finalAssessmentResult.phq9Severity,
-          gad7_score: finalAssessmentResult.gad7Score,
-          gad7_severity: finalAssessmentResult.gad7Severity,
+          baseline_level:       finalAssessmentResult.overallBaseline,
+          primary_issue:        finalAssessmentResult.primaryIssue,
+          realtime_status:      finalAssessmentResult.realtimeStatus ?? null,
+          realtime_confidence:  finalAssessmentResult.realtimeConfidence ?? null,
+          phq9_score:           finalAssessmentResult.phq9Score,
+          phq9_severity:        finalAssessmentResult.phq9Severity,
+          gad7_score:           finalAssessmentResult.gad7Score,
+          gad7_severity:        finalAssessmentResult.gad7Severity,
           last_assessment_date: new Date().toISOString(),
-        } as any)
+        })
         .eq("user_id", user.id);
+
+      if (dbError) {
+        console.error("Failed to save assessment to DB:", dbError.message);
+      }
     }
     
     setIsAnalyzing(false);
@@ -635,7 +642,7 @@ export default function FollowUp() {
                   This screening is not a clinical diagnosis. Please consult a mental health professional for a formal evaluation.
                 </p>
 
-                <div className="mt-4">
+                <div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
                   <Button
                     variant="hero"
                     className="w-full sm:w-auto px-8 py-6 text-lg rounded-2xl"
@@ -643,6 +650,18 @@ export default function FollowUp() {
                   >
                     <MessageSquare className="h-6 w-6 mr-2" />
                     Speak with MindCare AI
+                  </Button>
+                  <Button
+                    variant="hero-outline"
+                    className="w-full sm:w-auto px-8 py-6 text-lg rounded-2xl"
+                    onClick={() =>
+                      navigate("/profile", {
+                        state: { freshAssessment: displayResult },
+                      })
+                    }
+                  >
+                    <User className="h-6 w-6 mr-2" />
+                    View My Profile
                   </Button>
                 </div>
               </motion.div>

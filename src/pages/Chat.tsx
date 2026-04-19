@@ -5,6 +5,7 @@ import {
   Brain, Send, Wind, SmilePlus, BookOpen, Moon,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAppStore } from "@/store/useAppStore";
@@ -14,6 +15,54 @@ import ReassessmentBanner from "@/components/ReassessmentBanner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getAvatarEmoji } from "@/lib/avatars";
+
+// Custom Markdown components for rich chat bubble rendering
+const markdownComponents = {
+  // Tables — scrollable wrapper + clean border styling
+  table: ({ children }: React.HTMLAttributes<HTMLTableElement>) => (
+    <div className="overflow-x-auto my-2 rounded-lg border border-border">
+      <table className="w-full text-xs border-collapse">{children}</table>
+    </div>
+  ),
+  thead: ({ children }: React.HTMLAttributes<HTMLTableSectionElement>) => (
+    <thead className="bg-primary/10">{children}</thead>
+  ),
+  th: ({ children }: React.ThHTMLAttributes<HTMLTableCellElement>) => (
+    <th className="px-3 py-2 text-left font-semibold text-foreground border-b border-border">
+      {children}
+    </th>
+  ),
+  td: ({ children }: React.TdHTMLAttributes<HTMLTableCellElement>) => (
+    <td className="px-3 py-2 border-b border-border/50 text-card-foreground">{children}</td>
+  ),
+  tr: ({ children }: React.HTMLAttributes<HTMLTableRowElement>) => (
+    <tr className="even:bg-muted/30">{children}</tr>
+  ),
+  // Lists
+  ul: ({ children }: React.HTMLAttributes<HTMLUListElement>) => (
+    <ul className="list-disc pl-5 my-1 space-y-0.5">{children}</ul>
+  ),
+  ol: ({ children }: React.HTMLAttributes<HTMLOListElement>) => (
+    <ol className="list-decimal pl-5 my-1 space-y-0.5">{children}</ol>
+  ),
+  li: ({ children }: React.LiHTMLAttributes<HTMLLIElement>) => (
+    <li className="text-sm leading-relaxed">{children}</li>
+  ),
+  // Inline styles
+  strong: ({ children }: React.HTMLAttributes<HTMLElement>) => (
+    <strong className="font-semibold text-primary">{children}</strong>
+  ),
+  em: ({ children }: React.HTMLAttributes<HTMLElement>) => (
+    <em className="italic text-muted-foreground">{children}</em>
+  ),
+  code: ({ children }: React.HTMLAttributes<HTMLElement>) => (
+    <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>
+  ),
+  // Paragraph spacing
+  p: ({ children }: React.HTMLAttributes<HTMLParagraphElement>) => (
+    <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+  ),
+};
 
 const quickReplies = [
   "I'm feeling anxious",
@@ -129,11 +178,16 @@ export default function Chat() {
           message: text,
           user_id: user?.id || "anonymous",
           baseline_severity: assessmentResult?.overallBaseline ?? "Normal",
-          baseline_issue: assessmentResult?.primaryIssue && assessmentResult.primaryIssue !== "None" 
-                         ? assessmentResult.primaryIssue 
+          baseline_issue: assessmentResult?.primaryIssue && assessmentResult.primaryIssue !== "None"
+                         ? assessmentResult.primaryIssue
                          : "None",
           realtime_status: nlpLabel !== "Normal" ? nlpLabel : (assessmentResult?.realtimeStatus || "Normal"),
-          history: chatMessages.map(msg => ({ role: msg.role, content: msg.content }))
+          history: chatMessages.map(msg => ({ role: msg.role, content: msg.content })),
+          // Clinical scores for richer LLM context
+          phq9_score: assessmentResult?.phq9Score ?? null,
+          phq9_severity: assessmentResult?.phq9Severity ?? null,
+          gad7_score: assessmentResult?.gad7Score ?? null,
+          gad7_severity: assessmentResult?.gad7Severity ?? null,
         })
       });
 
@@ -206,7 +260,12 @@ export default function Chat() {
                     >
                       {msg.role === "assistant" ? (
                         <div className="prose prose-sm max-w-none text-card-foreground">
-                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={markdownComponents}
+                          >
+                            {msg.content}
+                          </ReactMarkdown>
                         </div>
                       ) : (
                         msg.content
