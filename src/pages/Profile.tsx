@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { User, Shield, Heart, Sparkles, Save, Sun, Moon, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,26 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // ── Instant sync from FollowUp navigation state ──────────────────────────
+  // When the user clicks "View My Profile" right after finishing the assessment,
+  // FollowUp passes the fresh result via router state so Profile renders it
+  // immediately — no DB round-trip needed and no race-condition.
+  const location = useLocation();
+  useEffect(() => {
+    const fa = (location.state as any)?.freshAssessment;
+    if (!fa) return;
+    if (fa.phq9Score    != null) setPhq9Score(fa.phq9Score);
+    if (fa.gad7Score    != null) setGad7Score(fa.gad7Score);
+    if (fa.phq9Severity)         setPhq9Severity(fa.phq9Severity);
+    if (fa.gad7Severity)         setGad7Severity(fa.gad7Severity);
+    if (fa.overallBaseline)      setBaselineLevel(fa.overallBaseline);
+    if (fa.primaryIssue)         setPrimaryIssue(fa.primaryIssue);
+    // realtimeStatus may be undefined if user skipped all text answers
+    setRealtimeStatus(fa.realtimeStatus ?? null);
+    setRealtimeConfidence(fa.realtimeConfidence ?? null);
+    setLastAssessmentDate(new Date().toISOString());
+  }, [location.state]);
+
   useEffect(() => {
     if (!user) return;
     const fetchProfile = async () => {
@@ -47,34 +67,46 @@ export default function Profile() {
         .single();
 
       if (data) {
-        setNickname((data as any).nickname || data.display_name || "");
+        setNickname(data.nickname || data.display_name || "");
         setSelectedAvatar(data.avatar_url || "avatar-calm");
-        setBaselineLevel((data as any).baseline_level || "Normal");
-        setPrimaryIssue((data as any).primary_issue || "None");
-        setRealtimeStatus((data as any).realtime_status || null);
-        setRealtimeConfidence((data as any).realtime_confidence || null);
-        setLastAssessmentDate((data as any).last_assessment_date || null);
-        // Derive approximate scores from stored severity for display
-        // (exact scores not stored in profiles table, only severity labels)
-        setPhq9Severity((data as any).phq9_severity || null);
-        setGad7Severity((data as any).gad7_severity || null);
-        setPhq9Score((data as any).phq9_score ?? null);
-        setGad7Score((data as any).gad7_score ?? null);
+        setBaselineLevel(data.baseline_level || "Normal");
+        setPrimaryIssue(data.primary_issue || "None");
+        setRealtimeStatus(data.realtime_status ?? null);
+        setRealtimeConfidence(data.realtime_confidence ?? null);
+        setLastAssessmentDate(data.last_assessment_date ?? null);
+        setPhq9Severity(data.phq9_severity ?? null);
+        setGad7Severity(data.gad7_severity ?? null);
+        setPhq9Score(data.phq9_score ?? null);
+        setGad7Score(data.gad7_score ?? null);
       }
 
       // Fetch user state (coping methods)
       const { data: stateData } = await supabase
-        .from("user_states" as any)
+        .from("user_states")
         .select("preferred_coping_methods")
         .eq("user_id", user.id)
         .single();
 
       if (stateData) {
-        setCopingMethods((stateData as any).preferred_coping_methods || []);
+        setCopingMethods(stateData.preferred_coping_methods || []);
       }
       setLoading(false);
     };
+
+    // Initial fetch
     fetchProfile();
+
+    // Re-fetch when the page becomes visible again (e.g. user returns from
+    // Screening / FollowUp flow and navigates back to Profile)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchProfile();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [user]);
 
   const handleSave = async () => {

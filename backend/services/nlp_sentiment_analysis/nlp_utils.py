@@ -18,7 +18,8 @@ CRISIS_KEYWORDS = [
     "suicide", "suicidal", "kill myself", "end my life", "better off dead",
     "don't want to live", "self-harm", "harm myself", "cut myself",
     "hang myself", "overdose", "end it all", "not worth living",
-    "worthless", "nobody cares", "alone forever"
+    "want to die", "wish i was dead", "no reason to live",
+    "take my own life", "don't want to be alive", "give up on life",
 ]
 
 # Mental health classification keywords

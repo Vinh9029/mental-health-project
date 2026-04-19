@@ -129,11 +129,16 @@ export default function Chat() {
           message: text,
           user_id: user?.id || "anonymous",
           baseline_severity: assessmentResult?.overallBaseline ?? "Normal",
-          baseline_issue: assessmentResult?.primaryIssue && assessmentResult.primaryIssue !== "None" 
-                         ? assessmentResult.primaryIssue 
+          baseline_issue: assessmentResult?.primaryIssue && assessmentResult.primaryIssue !== "None"
+                         ? assessmentResult.primaryIssue
                          : "None",
           realtime_status: nlpLabel !== "Normal" ? nlpLabel : (assessmentResult?.realtimeStatus || "Normal"),
-          history: chatMessages.map(msg => ({ role: msg.role, content: msg.content }))
+          history: chatMessages.map(msg => ({ role: msg.role, content: msg.content })),
+          // Clinical scores for richer LLM context
+          phq9_score: assessmentResult?.phq9Score ?? null,
+          phq9_severity: assessmentResult?.phq9Severity ?? null,
+          gad7_score: assessmentResult?.gad7Score ?? null,
+          gad7_severity: assessmentResult?.gad7Severity ?? null,
         })
       });
 

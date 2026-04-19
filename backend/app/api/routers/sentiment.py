@@ -12,7 +12,8 @@ router = APIRouter()
 
 class SentimentRequest(BaseModel):
     """Sentiment analysis request"""
-    text_responses: List[str]  # 3 follow-up text answers
+    text_responses: List[str]         # 3 follow-up text answers
+    questions: Optional[List[str]] = None  # Paired follow-up questions for Q+A context
     user_id: Optional[str] = None
 
 class SentimentResponse(BaseModel):
@@ -42,8 +43,8 @@ async def analyze_followup_sentiment(request: SentimentRequest) -> SentimentResp
         raise HTTPException(status_code=400, detail="Must provide exactly 3 text responses")
     
     try:
-        # Analyze sentiment
-        result = analyze_sentiment(request.text_responses)
+        # Analyze sentiment — pass questions for Q+A-pair enriched input
+        result = analyze_sentiment(request.text_responses, questions=request.questions)
         
         return SentimentResponse(
             label=result["label"],
