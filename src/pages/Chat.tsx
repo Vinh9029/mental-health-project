@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Brain, Send, Wind, SmilePlus, BookOpen, Moon,
+  Brain, Send, Wind, SmilePlus, BookOpen, Moon, Volume2, VolumeX,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -18,6 +18,13 @@ import { getAvatarEmoji } from "@/lib/avatars";
 
 // Custom Markdown components for rich chat bubble rendering
 const markdownComponents = {
+  // Headings
+  h2: ({ children }: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h2 className="text-base font-semibold text-foreground mt-3 mb-1.5 pb-0.5 border-b border-border/40">{children}</h2>
+  ),
+  h3: ({ children }: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h3 className="text-sm font-semibold text-foreground mt-2 mb-1">{children}</h3>
+  ),
   // Tables — scrollable wrapper + clean border styling
   table: ({ children }: React.HTMLAttributes<HTMLTableElement>) => (
     <div className="overflow-x-auto my-2 rounded-lg border border-border">
@@ -53,7 +60,7 @@ const markdownComponents = {
     <strong className="font-semibold text-primary">{children}</strong>
   ),
   em: ({ children }: React.HTMLAttributes<HTMLElement>) => (
-    <em className="italic text-muted-foreground">{children}</em>
+    <em className="italic text-muted-foreground/90">{children}</em>
   ),
   code: ({ children }: React.HTMLAttributes<HTMLElement>) => (
     <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>
@@ -61,6 +68,10 @@ const markdownComponents = {
   // Paragraph spacing
   p: ({ children }: React.HTMLAttributes<HTMLParagraphElement>) => (
     <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+  ),
+  // Blockquote
+  blockquote: ({ children }: React.HTMLAttributes<HTMLElement>) => (
+    <blockquote className="border-l-2 border-primary/40 pl-3 my-2 text-muted-foreground italic">{children}</blockquote>
   ),
 };
 
@@ -97,14 +108,68 @@ const selfCareTools = [
   },
 ];
 
+// ── Text-to-Speech hook ──────────────────────────────────────────────────────
+function useTTS() {
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+
+  const speak = useCallback((id: string, text: string) => {
+    if (!window.speechSynthesis) return;
+
+    // Stop any ongoing speech
+    window.speechSynthesis.cancel();
+
+    if (speakingId === id) {
+      // Toggle off
+      setSpeakingId(null);
+      return;
+    }
+
+    // Strip markdown syntax for cleaner audio
+    const clean = text
+      .replace(/#{1,6}\s*/g, "")
+      .replace(/\*{1,2}([^*]+)\*{1,2}/g, "$1")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/^[-*]\s+/gm, "")
+      .replace(/\|[^\n]+\|/g, "")   // strip table rows
+      .replace(/\n{2,}/g, ". ")
+      .replace(/\n/g, " ")
+      .trim();
+
+    const utter = new SpeechSynthesisUtterance(clean);
+    utter.rate  = 0.95;
+    utter.pitch = 1.05;
+    // Auto-select Vietnamese voice if text is likely Vietnamese
+    const isVi = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(clean);
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v =>
+      isVi ? v.lang.startsWith("vi") : v.lang.startsWith("en")
+    );
+    if (preferred) utter.voice = preferred;
+
+    utter.onend   = () => setSpeakingId(null);
+    utter.onerror = () => setSpeakingId(null);
+
+    setSpeakingId(id);
+    window.speechSynthesis.speak(utter);
+  }, [speakingId]);
+
+  // Cancel on unmount
+  useEffect(() => () => { window.speechSynthesis?.cancel(); }, []);
+
+  return { speakingId, speak };
+}
+
 export default function Chat() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [streamingMessage, setStreamingMessage] = useState<string | null>(null);
   const [userAvatar, setUserAvatar] = useState("🙂");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { chatMessages, addChatMessage, assessmentResult } = useAppStore();
   const { showReassessment, nickname, dismiss: dismissReassessment } = useReassessment();
   const { user } = useAuth();
+  const { speakingId, speak } = useTTS();
 
   useEffect(() => {
     if (!user) return;
@@ -151,13 +216,14 @@ export default function Chat() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages]);
+  }, [chatMessages, streamingMessage]);
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
     setInput("");
     addChatMessage({ role: "user", content: text });
     setIsLoading(true);
+    setStreamingMessage(""); // start streaming bubble immediately
 
     if (user) {
       await supabase.from("chat_messages").insert({
@@ -169,9 +235,8 @@ export default function Chat() {
 
     try {
       const nlpLabel = classifyText(text);
-      
-      // Gọi API FastAPI thay vì Mock Data
-      const res = await fetch("http://localhost:8000/api/chat", {
+
+      const res = await fetch("http://localhost:8000/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -183,7 +248,6 @@ export default function Chat() {
                          : "None",
           realtime_status: nlpLabel !== "Normal" ? nlpLabel : (assessmentResult?.realtimeStatus || "Normal"),
           history: chatMessages.map(msg => ({ role: msg.role, content: msg.content })),
-          // Clinical scores for richer LLM context
           phq9_score: assessmentResult?.phq9Score ?? null,
           phq9_severity: assessmentResult?.phq9Severity ?? null,
           gad7_score: assessmentResult?.gad7Score ?? null,
@@ -191,19 +255,49 @@ export default function Chat() {
         })
       });
 
-      if (!res.ok) throw new Error("Lỗi khi kết nối với máy chủ AI");
-      
-      const data = await res.json();
-      addChatMessage({ role: "assistant", content: data.reply });
+      if (!res.ok || !res.body) throw new Error("Lỗi khi kết nối với máy chủ AI");
+
+      // Read SSE stream
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? ""; // keep incomplete last line
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6).trim();
+          if (payload === "[DONE]") break;
+          try {
+            const { token } = JSON.parse(payload);
+            fullText += token;
+            setStreamingMessage(fullText);
+          } catch {
+            // skip malformed chunk
+          }
+        }
+      }
+
+      // Commit to store and clear streaming bubble
+      addChatMessage({ role: "assistant", content: fullText });
+      setStreamingMessage(null);
 
       if (user) {
         await supabase.from("chat_messages").insert({
           user_id: user.id,
           role: "assistant",
-          content: data.reply
+          content: fullText
         });
       }
     } catch {
+      setStreamingMessage(null);
       addChatMessage({
         role: "assistant",
         content: "I'm sorry, I encountered an issue. Please try again.",
@@ -266,6 +360,24 @@ export default function Chat() {
                           >
                             {msg.content}
                           </ReactMarkdown>
+                          {/* TTS Speaker button */}
+                          <div className="flex justify-end mt-2">
+                            <button
+                              onClick={() => speak(msg.id, msg.content)}
+                              title={speakingId === msg.id ? "Stop reading" : "Read aloud"}
+                              className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-all ${
+                                speakingId === msg.id
+                                  ? "bg-primary/15 text-primary"
+                                  : "text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                              }`}
+                            >
+                              {speakingId === msg.id ? (
+                                <><VolumeX className="h-3.5 w-3.5" /><span>Stop</span></>
+                              ) : (
+                                <><Volume2 className="h-3.5 w-3.5" /><span>Read</span></>
+                              )}
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         msg.content
@@ -281,22 +393,51 @@ export default function Chat() {
                   </motion.div>
                 ))}
               </AnimatePresence>
-              {isLoading && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3 justify-start">
-                  <Avatar className="h-8 w-8 shrink-0 mt-1">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                      <Brain className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="bg-card border rounded-2xl rounded-bl-md px-5 py-3 card-elevated">
-                    <div className="flex gap-1">
-                      <span className="h-2 w-2 rounded-full bg-primary animate-pulse-gentle" />
-                      <span className="h-2 w-2 rounded-full bg-primary animate-pulse-gentle" style={{ animationDelay: "0.2s" }} />
-                      <span className="h-2 w-2 rounded-full bg-primary animate-pulse-gentle" style={{ animationDelay: "0.4s" }} />
+
+              {/* Streaming / typing bubble */}
+              <AnimatePresence>
+                {streamingMessage !== null && (
+                  <motion.div
+                    key="streaming"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="flex gap-3 justify-start"
+                  >
+                    <Avatar className="h-8 w-8 shrink-0 mt-1">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                        <Brain className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="max-w-[75%] rounded-2xl rounded-bl-md px-5 py-3 bg-card border text-card-foreground card-elevated text-sm leading-relaxed">
+                      {streamingMessage.length === 0 ? (
+                        /* Initial dots while LLM is generating */
+                        <div className="flex gap-1 py-1">
+                          <span className="h-2 w-2 rounded-full bg-primary animate-pulse-gentle" />
+                          <span className="h-2 w-2 rounded-full bg-primary animate-pulse-gentle" style={{ animationDelay: "0.2s" }} />
+                          <span className="h-2 w-2 rounded-full bg-primary animate-pulse-gentle" style={{ animationDelay: "0.4s" }} />
+                        </div>
+                      ) : (
+                        /* Live markdown render with blinking cursor */
+                        <div className="prose prose-sm max-w-none text-card-foreground">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={markdownComponents}
+                          >
+                            {streamingMessage}
+                          </ReactMarkdown>
+                          <span
+                            className="inline-block w-0.5 h-4 bg-primary ml-0.5 align-middle"
+                            style={{ animation: "blink 0.9s step-end infinite" }}
+                          />
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </motion.div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* No longer need the old dots-only loader */}
               <div ref={messagesEndRef} />
             </div>
           </div>

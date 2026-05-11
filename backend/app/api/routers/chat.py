@@ -4,10 +4,13 @@ Handles chat requests and integrates LLM RAG with mental health assessment.
 """
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, AsyncGenerator
 import sys
 import os
+import json
+import asyncio
 
 # Add services to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
@@ -97,6 +100,118 @@ def get_rag_chat_response(request: ChatRequest) -> ChatResponse:
         # If RAG not available, return None to trigger fallback
         print(f"RAG service error: {e}")
         return None
+
+# ---------------------------------------------------------------------------
+# Streaming helper
+# ---------------------------------------------------------------------------
+
+async def _stream_rag_response(request: ChatRequest) -> AsyncGenerator[str, None]:
+    """
+    Async generator that yields Server-Sent Events (SSE) chunks.
+    Each chunk: `data: <json>\n\n`   Final chunk: `data: [DONE]\n\n`
+
+    Why simulate streaming instead of true token streaming?
+    LM Studio local LLM does NOT support streaming over HTTP by default.
+    We get the full response synchronously in a thread pool, then replay it
+    word-by-word with asyncio.sleep so the frontend sees a typewriter effect.
+    Using asyncio.to_thread() keeps the FastAPI event loop unblocked so the
+    sleep delays actually fire (vs. blocking the loop = instant burst).
+    """
+    detected_label = classify_text(request.message)
+
+    # ── Crisis fast-path (EN + VI keywords) ─────────────────────────────────
+    if detected_label == "Suicidal":
+        crisis_text = get_crisis_response()
+        payload = json.dumps({"token": crisis_text, "detected_label": detected_label, "requires_crisis_support": True})
+        yield f"data: {payload}\n\n"
+        yield "data: [DONE]\n\n"
+        return
+
+    # ── RAG + LLM path ───────────────────────────────────────────────────────
+    try:
+        from services.llm_rag.src.generation import ResponseGenerator
+        from services.llm_rag.src.retrieval import AdvancedRetriever
+        from services.llm_rag.src.app_config import get_llm, get_vectorstore, CROSS_ENCODER_MODEL
+        from langchain_core.messages import HumanMessage, AIMessage
+
+        llm         = get_llm()
+        vectorstore = get_vectorstore()
+        retriever   = AdvancedRetriever(vectorstore, model_name=CROSS_ENCODER_MODEL).get_retriever()
+        generator   = ResponseGenerator(llm)
+
+        # Restore conversation history
+        history_msgs = []
+        for msg in (request.history or []):
+            if msg.role in ("user", "human"):
+                history_msgs.append(HumanMessage(content=msg.content))
+            elif msg.role in ("assistant", "ai"):
+                history_msgs.append(AIMessage(content=msg.content))
+        generator.chat_history = history_msgs[-generator.max_history:]
+
+        # Language detection + query expansion (LLM call #1 for VI queries)
+        translated_query, expanded_query = generator.translate_and_expand_query(request.message)
+        is_vietnamese = (generator.detect_language(request.message) == "vi")
+
+        # ── Offload blocking LLM call to thread pool ─────────────────────────
+        # generate_response() calls retriever.invoke() (Pinecone) + LLM.
+        # Running it in a thread means asyncio.sleep() below fires correctly.
+        def _blocking_generate() -> str:
+            return generator.generate_response(
+                user_query        = request.message,
+                expanded_query    = expanded_query,
+                retriever         = retriever,   # ← Pinecone RAG retriever
+                baseline_severity = request.baseline_severity or "Normal",
+                baseline_issue    = request.baseline_issue    or "None",
+                realtime_status   = request.realtime_status   or "",
+                is_vietnamese     = is_vietnamese,
+                phq9_score        = request.phq9_score,
+                phq9_severity     = request.phq9_severity,
+                gad7_score        = request.gad7_score,
+                gad7_severity     = request.gad7_severity,
+            )
+
+        full_response: str = await asyncio.to_thread(_blocking_generate)
+
+        # ── Word-by-word replay ───────────────────────────────────────────────
+        words = full_response.split(" ")
+        for i, word in enumerate(words):
+            chunk   = word if i == 0 else " " + word
+            payload = json.dumps({"token": chunk, "detected_label": detected_label, "requires_crisis_support": False})
+            yield f"data: {payload}\n\n"
+            await asyncio.sleep(0.02)   # ≈ 50 words/sec — comfortable reading pace
+
+        yield "data: [DONE]\n\n"
+
+    except Exception as e:
+        print(f"Streaming error: {e}")
+        payload = json.dumps({"token": "I'm sorry, something went wrong. Please try again.", "detected_label": "Error", "requires_crisis_support": False})
+        yield f"data: {payload}\n\n"
+        yield "data: [DONE]\n\n"
+
+
+@router.post("/chat/stream")
+async def handle_chat_stream(request: ChatRequest):
+    """
+    Streaming chat endpoint — returns Server-Sent Events.
+    Each event carries a JSON payload: { token, detected_label, requires_crisis_support }
+    The final event is the literal string '[DONE]'.
+    """
+    if not request.message or not request.message.strip():
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+    return StreamingResponse(
+        _stream_rag_response(request),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Non-streaming (kept for backwards compatibility)
+# ---------------------------------------------------------------------------
 
 @router.post("/chat", response_model=ChatResponse)
 async def handle_chat(request: ChatRequest) -> ChatResponse:
