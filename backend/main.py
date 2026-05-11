@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routers import chat, sentiment
+from app.api.routers import chat, sentiment, journal
 
 app = FastAPI(title="MindCare AI API", version="1.0")
 
@@ -18,6 +18,9 @@ app.include_router(chat.router, prefix="/api", tags=["ChatBot"])
 
 # Nạp Router của Sentiment Analysis vào /api/sentiment
 app.include_router(sentiment.router, prefix="/api", tags=["Sentiment Analysis"])
+
+# Journal summarisation router
+app.include_router(journal.router, prefix="/api", tags=["Journal"])
 
 @app.get("/")
 def root():

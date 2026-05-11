@@ -25,17 +25,15 @@ export default function ReassessmentBanner({ nickname, onDismiss }: Props) {
           </div>
           <div className="flex-1">
             <p className="text-sm text-card-foreground leading-relaxed">
-              Chào <strong>{nickname}</strong> 👋, thấm thoắt Viki và bạn đã đồng hành cùng nhau được 2 tuần rồi.
-              Bạn đã làm rất tốt khi kiên trì chăm sóc bản thân! Để Viki có thể hiểu rõ hơn về cảm xúc hiện tại
-              của bạn và điều chỉnh các bài tập cho phù hợp, bạn có sẵn sàng dành ra 2 phút để làm một bài kiểm tra
-              nhỏ cùng Viki không nhé?
+              Hi <strong>{nickname}</strong> 👋, MindCare-AI has been with you for two weeks now.
+              You have done very well by being persistent in taking care of yourself! To help MindCare-AI understand better about your current emotions and adjust the exercises accordingly, are you ready to spend 2 minutes doing a small test together with MindCare-AI?
             </p>
             <div className="flex gap-2 mt-4">
               <Button variant="hero" size="sm" onClick={() => navigate("/screening")}>
-                Bắt đầu bài Test
+                Let's do a quick check-in
               </Button>
               <Button variant="ghost" size="sm" onClick={onDismiss}>
-                Để sau
+                Do it later
               </Button>
             </div>
           </div>

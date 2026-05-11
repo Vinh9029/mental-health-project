@@ -14,6 +14,8 @@ import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import Community from "./pages/Community";
 import NotFound from "./pages/NotFound";
+import MoodTracker from "./pages/MoodTracker";
+import Journal from "./pages/Journal";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +36,8 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/community" element={<Community />} />
+              <Route path="/mood" element={<MoodTracker />} />
+              <Route path="/journal" element={<Journal />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>

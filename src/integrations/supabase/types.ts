@@ -14,6 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
+      mood_checkins: {
+        Row: {
+          id: string
+          user_id: string
+          emoji: string
+          label: string
+          stress_score: number | null
+          note: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          emoji: string
+          label: string
+          stress_score?: number | null
+          note?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          emoji?: string
+          label?: string
+          stress_score?: number | null
+          note?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      assessment_history: {
+        Row: {
+          id: string
+          user_id: string
+          phq9_score: number | null
+          gad7_score: number | null
+          phq9_severity: string | null
+          gad7_severity: string | null
+          overall_baseline: string | null
+          primary_issue: string | null
+          taken_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          phq9_score?: number | null
+          gad7_score?: number | null
+          phq9_severity?: string | null
+          gad7_severity?: string | null
+          overall_baseline?: string | null
+          primary_issue?: string | null
+          taken_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          phq9_score?: number | null
+          gad7_score?: number | null
+          phq9_severity?: string | null
+          gad7_severity?: string | null
+          overall_baseline?: string | null
+          primary_issue?: string | null
+          taken_at?: string
+        }
+        Relationships: []
+      }
+      journal_entries: {
+        Row: {
+          id: string
+          user_id: string
+          content: string
+          ai_summary: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          content: string
+          ai_summary?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          content?: string
+          ai_summary?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chat_sessions: {
         Row: {
           created_at: string | null

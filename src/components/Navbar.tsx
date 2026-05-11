@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Brain, LogOut, User, ChevronDown, Users } from "lucide-react";
+import { Brain, LogOut, User, ChevronDown, Users, Smile, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -46,6 +46,12 @@ export default function Navbar() {
           </Button>
           <Button variant="ghost" size="sm" asChild className="gap-1.5">
             <Link to="/community"><Users className="h-4 w-4" /> Community</Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild className="gap-1.5">
+            <Link to="/mood"><Smile className="h-4 w-4" /> Mood</Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild className="gap-1.5">
+            <Link to="/journal"><BookOpen className="h-4 w-4" /> Journal</Link>
           </Button>
           <Button variant="hero" size="sm" asChild>
             <Link to="/screening">Start Screening</Link>

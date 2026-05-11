@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useTheme } from "@/components/ThemeProvider";
 import Navbar from "@/components/Navbar";
+import ProgressChart from "@/components/ProgressChart";
 
 import { AVATARS } from "@/lib/avatars";
 
@@ -34,6 +35,7 @@ export default function Profile() {
   const [phq9Severity, setPhq9Severity] = useState<string | null>(null);
   const [gad7Severity, setGad7Severity] = useState<string | null>(null);
   const [copingMethods, setCopingMethods] = useState<string[]>([]);
+  const [assessmentHistory, setAssessmentHistory] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -90,6 +92,15 @@ export default function Profile() {
       if (stateData) {
         setCopingMethods(stateData.preferred_coping_methods || []);
       }
+
+      // Fetch assessment history for the progress chart
+      const { data: historyData } = await supabase
+        .from("assessment_history")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("taken_at", { ascending: true });
+      if (historyData) setAssessmentHistory(historyData);
+
       setLoading(false);
     };
 
@@ -354,6 +365,19 @@ export default function Profile() {
                 <Sparkles className="h-4 w-4 mr-1" /> Take / Retake Assessment
               </Link>
             </Button>
+          </motion.div>
+
+          {/* Progress Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+            className="bg-card rounded-2xl p-6 card-elevated"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <h2 className="font-heading text-lg font-semibold text-card-foreground">Progress Over Time</h2>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">Your PHQ-9 and GAD-7 scores from each assessment. Lower scores indicate improvement.</p>
+            <ProgressChart history={assessmentHistory} />
           </motion.div>
 
           {/* Coping Methods */}

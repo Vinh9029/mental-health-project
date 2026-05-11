@@ -296,6 +296,17 @@ export default function FollowUp() {
       if (dbError) {
         console.error("Failed to save assessment to DB:", dbError.message);
       }
+
+      // Also insert a snapshot into assessment_history for the progress chart
+      await supabase.from("assessment_history").insert({
+        user_id:          user.id,
+        phq9_score:       finalAssessmentResult.phq9Score,
+        gad7_score:       finalAssessmentResult.gad7Score,
+        phq9_severity:    finalAssessmentResult.phq9Severity,
+        gad7_severity:    finalAssessmentResult.gad7Severity,
+        overall_baseline: finalAssessmentResult.overallBaseline,
+        primary_issue:    finalAssessmentResult.primaryIssue,
+      });
     }
     
     setIsAnalyzing(false);

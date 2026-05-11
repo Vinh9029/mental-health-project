@@ -15,6 +15,8 @@ import ReassessmentBanner from "@/components/ReassessmentBanner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getAvatarEmoji } from "@/lib/avatars";
+import { useMoodCheckin } from "@/hooks/useMoodCheckin";
+import MoodCheckInModal from "@/components/MoodCheckInModal";
 
 // Custom Markdown components for rich chat bubble rendering
 const markdownComponents = {
@@ -165,11 +167,13 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState<string | null>(null);
   const [userAvatar, setUserAvatar] = useState("🙂");
+  const [showMoodModal, setShowMoodModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { chatMessages, addChatMessage, assessmentResult } = useAppStore();
   const { showReassessment, nickname, dismiss: dismissReassessment } = useReassessment();
   const { user } = useAuth();
   const { speakingId, speak } = useTTS();
+  const { hasCheckedInToday, submitCheckin } = useMoodCheckin();
 
   useEffect(() => {
     if (!user) return;
@@ -182,6 +186,15 @@ export default function Chat() {
         if (data?.avatar_url) setUserAvatar(getAvatarEmoji(data.avatar_url));
       });
   }, [user]);
+
+  // Show mood check-in modal once per day
+  useEffect(() => {
+    if (hasCheckedInToday === false) {
+      // Small delay so the chat page renders first
+      const t = setTimeout(() => setShowMoodModal(true), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [hasCheckedInToday]);
 
   useEffect(() => {
     const loadChatHistory = async () => {
@@ -516,6 +529,14 @@ export default function Chat() {
           )}
         </aside>
       </div>
+
+      {/* Daily Mood Check-in Modal */}
+      {showMoodModal && (
+        <MoodCheckInModal
+          onClose={() => setShowMoodModal(false)}
+          onSubmit={submitCheckin}
+        />
+      )}
     </div>
   );
 }
