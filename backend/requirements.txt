@@ -10,6 +10,7 @@ langchain-core>=0.1.0
 langchain-community>=0.0.1
 langchain-openai
 langchain-pinecone
+langchain-google-genai>=1.0.0
 langdetect
 sentence-transformers
 

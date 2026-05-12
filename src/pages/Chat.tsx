@@ -175,6 +175,35 @@ export default function Chat() {
   const { speakingId, speak } = useTTS();
   const { hasCheckedInToday, submitCheckin } = useMoodCheckin();
 
+  // -- Behavioural context (mood + journal) fetched once per session --
+  const [moodContext, setMoodContext] = useState<Array<Record<string, unknown>> | null>(null);
+  const [journalContext, setJournalContext] = useState<Array<Record<string, unknown>> | null>(null);
+
+  // Fetch mood + journal context from Supabase (once per user session)
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const [{ data: moods }, { data: journals }] = await Promise.all([
+        supabase
+          .from("mood_checkins")
+          .select("emoji, label, stress_score, note, created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(3),
+        supabase
+          .from("journal_entries")
+          .select("ai_summary, created_at")
+          .eq("user_id", user.id)
+          .not("ai_summary", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(2),
+      ]);
+      if (moods) setMoodContext(moods as Array<Record<string, unknown>>);
+      if (journals) setJournalContext(journals as Array<Record<string, unknown>>);
+    };
+    load();
+  }, [user]);
+
   useEffect(() => {
     if (!user) return;
     supabase
@@ -265,6 +294,8 @@ export default function Chat() {
           phq9_severity: assessmentResult?.phq9Severity ?? null,
           gad7_score: assessmentResult?.gad7Score ?? null,
           gad7_severity: assessmentResult?.gad7Severity ?? null,
+          mood_context: moodContext ?? [],
+          journal_context: journalContext ?? [],
         })
       });
 

@@ -22,6 +22,12 @@ router = APIRouter()
 class JournalSummarizeRequest(BaseModel):
     content: str
     language: Optional[str] = "auto"   # "en" | "vi" | "auto"
+    # Clinical profile — optional, enriches AI insight quality
+    phq9_score: Optional[int] = None
+    phq9_severity: Optional[str] = None
+    gad7_score: Optional[int] = None
+    gad7_severity: Optional[str] = None
+    baseline_level: Optional[str] = None  # Normal / Mild / Moderate / Severe
 
 
 class JournalSummarizeResponse(BaseModel):
@@ -34,16 +40,62 @@ def detect_vietnamese(text: str) -> bool:
     return any(c in vi_chars.lower() for c in text.lower())
 
 
-def build_prompt(content: str, is_vietnamese: bool) -> str:
-    """Build a bilingual journal analysis prompt."""
+def build_prompt(
+    content: str,
+    is_vietnamese: bool,
+    phq9_score: int | None = None,
+    phq9_severity: str | None = None,
+    gad7_score: int | None = None,
+    gad7_severity: str | None = None,
+    baseline_level: str | None = None,
+) -> str:
+    """Build a bilingual journal analysis prompt with optional clinical context."""
+
+    # -- Build clinical profile block --
+    def _profile_vi() -> str:
+        lines = []
+        if baseline_level and baseline_level != "Normal":
+            lines.append(f"Mức độ nền: {baseline_level}")
+        if phq9_score is not None and phq9_severity:
+            lines.append(f"PHQ-9 (Trầm cảm): {phq9_score} điểm — {phq9_severity}")
+        if gad7_score is not None and gad7_severity:
+            lines.append(f"GAD-7 (Lo âu): {gad7_score} điểm — {gad7_severity}")
+        if not lines:
+            return ""
+        return (
+            "\n\nHồ sơ lâm sàng của người viết (dùng để điều chỉnh độ sâu của phân tích):\n  "
+            + "\n  ".join(lines)
+            + "\nĐối với người dùng có mức độ Mild/Moderate/Severe: tăng cưᷜng xác nhận cảm xúc, giảm thiểu lời khuyên; Normal: tập trung phòng ngừa và duy trì tích cực."
+        )
+
+    def _profile_en() -> str:
+        lines = []
+        if baseline_level and baseline_level != "Normal":
+            lines.append(f"Baseline level: {baseline_level}")
+        if phq9_score is not None and phq9_severity:
+            lines.append(f"PHQ-9 (Depression): {phq9_score} — {phq9_severity}")
+        if gad7_score is not None and gad7_severity:
+            lines.append(f"GAD-7 (Anxiety): {gad7_score} — {gad7_severity}")
+        if not lines:
+            return ""
+        return (
+            "\n\nWriter's clinical profile (use to calibrate analysis depth):\n  "
+            + "\n  ".join(lines)
+            + "\nFor Mild/Moderate/Severe users: prioritise emotional validation over advice; "
+            + "for Normal: emphasise prevention and positive reinforcement."
+        )
+
+    profile_vi = _profile_vi()
+    profile_en = _profile_en()
+
     if is_vietnamese:
-        return f"""Bạn là một trợ lý nhật ký sức khỏe tâm thần đầy lòng trắc ẩn.
+        return f"""Bạn là một trợ lý nhật ký sức khỏe tâm thần đầy lòng trắc ẩn.{profile_vi}
 Hãy phân tích bài nhật ký riêng tư sau và cung cấp phân tích theo định dạng này (mỗi mục trên một dòng riêng):
 
-1. Cảm xúc chủ đạo: [1-2 từ mô tả trạng thái cảm xúc]
-2. Chủ đề chính: [2-3 mối quan tâm hoặc chủ đề được đề cập]
-3. Điểm tích cực: [các chiến lược đối phó hoặc khoảnh khắc tích cực nếu có]
-4. Nhận xét hỗ trợ: [một cái nhìn sâu sắc, nhẹ nhàng và đồng cảm]
+1. Cảm xúc chủ đạo: 2-3 từ mô tả trạng thái cảm xúc
+2. Chủ đề chính: 3-4 mối quan tâm hoặc chủ đề được đề cập
+3. Điểm tích cực: các chiến lược đối phó hoặc khoảnh khắc tích cực nếu có
+4. Nhận xét hỗ trợ: một cái nhìn sâu sắc, nhẹ nhàng và đồng cảm
 
 Hãy ngắn gọn (3-5 câu tổng cộng), ấm áp, không phán xét và nói theo ngôi thứ hai ("bạn").
 KHÔNG lặp lại nguyên văn nhật ký.
@@ -56,34 +108,48 @@ Bài nhật ký:
 
 Phân tích của bạn:"""
     else:
-        return f"""You are a compassionate mental health journaling assistant.
+        return f"""You are a compassionate mental health journaling assistant.{profile_en}
 Analyse the following private journal entry and provide your analysis in this format (each item on its own line):
 
-1. Emotional tone: [1-2 words describing the emotional state]
-2. Key themes: [2-3 main concerns or topics mentioned]
-3. Positive notes: [any coping strategies or positive moments found]
-4. Supportive insight: [one gentle, empathetic reflection]
+1. Emotional tone: 2-3 words describing the emotional state
+2. Key themes: 3-4 main concerns or topics mentioned
+3. Positive notes: any coping strategies or positive moments found
+4. Supportive insight: one gentle, empathetic reflection
 
 Be brief (3-5 sentences total), warm, non-judgmental, and speak in second person ("you").
 Do NOT repeat the journal verbatim.
+Do NOT use square brackets — write natural prose.
 
 Journal entry:
 \"\"\"
-{content[:2000]}
+{content[:3000]}
 \"\"\"
 
 Your analysis:"""
 
 
-async def _stream_journal_summary(content: str, is_vietnamese: bool) -> AsyncGenerator[str, None]:
+
+async def _stream_journal_summary(
+    request: "JournalSummarizeRequest",
+    is_vietnamese: bool,
+) -> AsyncGenerator[str, None]:
     """
     Async SSE generator — streams the LLM journal summary word-by-word.
+    Accepts the full request so clinical profile fields are available.
     Falls back to a static message if the LLM is unavailable.
     """
+    content = request.content
     try:
         from services.llm_rag.src.app_config import get_llm
 
-        prompt = build_prompt(content, is_vietnamese)
+        prompt = build_prompt(
+            content, is_vietnamese,
+            phq9_score=request.phq9_score,
+            phq9_severity=request.phq9_severity,
+            gad7_score=request.gad7_score,
+            gad7_severity=request.gad7_severity,
+            baseline_level=request.baseline_level,
+        )
 
         def _blocking_invoke() -> str:
             llm = get_llm()
@@ -146,13 +212,13 @@ async def summarize_journal_stream(request: JournalSummarizeRequest):
     if not request.content or not request.content.strip():
         raise HTTPException(status_code=400, detail="Journal content cannot be empty.")
 
-    if len(request.content) < 20:
+    if len(request.content) < 10:
         raise HTTPException(status_code=400, detail="Entry is too short to summarise.")
 
     is_vietnamese = detect_vietnamese(request.content)
 
     return StreamingResponse(
-        _stream_journal_summary(request.content, is_vietnamese),
+        _stream_journal_summary(request, is_vietnamese),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -178,7 +244,14 @@ async def summarize_journal(request: JournalSummarizeRequest):
     try:
         from services.llm_rag.src.app_config import get_llm
 
-        prompt = build_prompt(request.content, is_vietnamese)
+        prompt = build_prompt(
+            request.content, is_vietnamese,
+            phq9_score=request.phq9_score,
+            phq9_severity=request.phq9_severity,
+            gad7_score=request.gad7_score,
+            gad7_severity=request.gad7_severity,
+            baseline_level=request.baseline_level,
+        )
         llm = get_llm()
         result = await asyncio.to_thread(lambda: llm.invoke(prompt))
         summary = (result.content if hasattr(result, "content") else str(result)).strip()

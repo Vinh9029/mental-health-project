@@ -108,12 +108,21 @@ class ResponseGenerator:
         phq9_severity: str | None = None,
         gad7_score: int | None = None,
         gad7_severity: str | None = None,
+        # -- Behavioural context (mood + journal, pulled fresh per request) --
+        mood_context: list | None = None,
+        journal_context: list | None = None,
     ) -> str:
         """
         OPTIMIZED (LLM Call #2):
         - Generate mental health response ONLY in detected language.
         - Clinical detail (PHQ-9 / GAD-7 raw scores + severity) is injected
           into the profile block so the LLM has full quantitative context.
+        - mood_context:    List of recent mood check-ins
+                          [{emoji, label, stress_score, note, created_at}, ...]
+        - journal_context: List of recent journal AI summaries
+                          [{ai_summary, created_at}, ...]
+        Both are injected as a 'Personal Behavioural Context' block that
+        gives the LLM live, user-specific data BEFORE the CBT RAG docs.
 
         Args:
             user_query:        Original user query (for memory).
@@ -127,10 +136,80 @@ class ResponseGenerator:
             phq9_severity:     PHQ-9 severity label.
             gad7_score:        Raw GAD-7 total score (0-21).
             gad7_severity:     GAD-7 severity label.
+            mood_context:      Recent mood check-ins (max 3).
+            journal_context:   Recent journal AI summaries (max 2).
         """
         docs = retriever.invoke(expanded_query)
-        context = "\n\n".join([doc.page_content for doc in docs])
+        rag_context = "\n\n".join([doc.page_content for doc in docs])
         chat_history = self.chat_history[-self.max_history:]
+
+        # -- Build Mood Context block --
+        def _build_mood_block_vi(moods: list) -> str:
+            if not moods:
+                return "  Mood check-in gần đây: Không có dữ liệu."
+            lines = ["  Mood check-in gần đây (từ mới nhất):"]
+            for m in moods[:3]:
+                stress = f", căng thẳng {m.get('stress_score')}/10" if m.get('stress_score') is not None else ""
+                note = f" — '{m.get('note')}' " if m.get('note') else ""
+                lines.append(f"    • {m.get('emoji','')} {m.get('label','')}{stress}{note}")
+            return "\n".join(lines)
+
+        def _build_mood_block_en(moods: list) -> str:
+            if not moods:
+                return "  Recent mood check-ins: No data available."
+            lines = ["  Recent mood check-ins (newest first):"]
+            for m in moods[:3]:
+                stress = f", stress {m.get('stress_score')}/10" if m.get('stress_score') is not None else ""
+                note = f" — '{m.get('note')}' " if m.get('note') else ""
+                lines.append(f"    • {m.get('emoji','')} {m.get('label','')}{stress}{note}")
+            return "\n".join(lines)
+
+        # -- Build Journal Context block --
+        def _build_journal_block_vi(journals: list) -> str:
+            if not journals:
+                return "  Tóm tắt nhật ký gần đây: Không có dữ liệu."
+            lines = ["  Tóm tắt nhật ký gần đây (AI phân tích):"]
+            for j in journals[:2]:
+                summary = (j.get('ai_summary') or '').strip()
+                if summary:
+                    # Show first 200 chars to keep prompt tight
+                    preview = summary[:200] + ('…' if len(summary) > 200 else '')
+                    lines.append(f"    › {preview}")
+            return "\n".join(lines)
+
+        def _build_journal_block_en(journals: list) -> str:
+            if not journals:
+                return "  Recent journal AI insights: No data available."
+            lines = ["  Recent journal AI insights:"]
+            for j in journals[:2]:
+                summary = (j.get('ai_summary') or '').strip()
+                if summary:
+                    preview = summary[:200] + ('…' if len(summary) > 200 else '')
+                    lines.append(f"    › {preview}")
+            return "\n".join(lines)
+
+        _mood_list    = mood_context    or []
+        _journal_list = journal_context or []
+        mood_block_vi    = _build_mood_block_vi(_mood_list)
+        mood_block_en    = _build_mood_block_en(_mood_list)
+        journal_block_vi = _build_journal_block_vi(_journal_list)
+        journal_block_en = _build_journal_block_en(_journal_list)
+
+        # Personal context = mood + journal, placed BEFORE CBT RAG docs
+        personal_context_vi = (
+            "[Ngữ cảnh cá nhân của người dùng — ưu tiên cao hơn tài liệu tham khảo]\n"
+            f"{mood_block_vi}\n"
+            f"{journal_block_vi}"
+        )
+        personal_context_en = (
+            "[User's personal context — higher priority than reference documents]\n"
+            f"{mood_block_en}\n"
+            f"{journal_block_en}"
+        )
+
+        # Full context = personal (live) + RAG (knowledge base)
+        context_vi = f"{personal_context_vi}\n\n[Tài liệu CBT tham khảo (RAG)]\n{rag_context}"
+        context_en = f"{personal_context_en}\n\n[CBT Reference Documents (RAG)]\n{rag_context}"
 
         # -- Normalize values --
         _severity = baseline_severity or "Unknown"
@@ -233,7 +312,6 @@ class ResponseGenerator:
                 "    | **Thở 4-7-8** | Hít 4s – giữ 7s – thở ra 8s | Cơn lo âu cấp |\n"
                 "    | **Grounding 5-4-3-2-1** | Nhận diện 5 thứ nhìn thấy... | Căng thẳng, phân tâm |\n"
                 "  • KHÔNG dùng bảng cho nội dung có thể diễn đạt bằng 1–2 câu.\n\n"
-                "Bối cảnh tài liệu tham khảo (RAG):\n"
                 "{context}"
             )
 
@@ -245,7 +323,7 @@ class ResponseGenerator:
             ])
 
             response = (prompt_template | self.llm | StrOutputParser()).invoke({
-                "context":           context,
+                "context":           context_vi,
                 "chat_history":      chat_history,
                 "query":             user_query,   # ← original Vietnamese, NOT the English translation
                 "baseline_severity": _severity,
@@ -313,7 +391,6 @@ class ResponseGenerator:
                 "    | **Box Breathing** | Inhale 4s → Hold 4s → Exhale 4s → Hold 4s | Acute anxiety |\n"
                 "    | **5-4-3-2-1 Grounding** | Name 5 things you see, 4 you feel... | Panic, dissociation |\n"
                 "  * Do NOT use a table for content that fits in 1–2 sentences.\n\n"
-                "Retrieved reference context (RAG):\n"
                 "{context}"
             )
 
@@ -324,7 +401,7 @@ class ResponseGenerator:
             ])
 
             response = (prompt_template | self.llm | StrOutputParser()).invoke({
-                "context":           context,
+                "context":           context_en,
                 "chat_history":      chat_history,
                 "query":             user_query,   # ← original user message
                 "baseline_severity": _severity,

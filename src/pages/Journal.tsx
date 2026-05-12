@@ -82,6 +82,27 @@ export default function Journal() {
   const [loading, setLoading] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Clinical profile for personalizing AI journal analysis
+  const [clinicalProfile, setClinicalProfile] = useState<{
+    phq9_score: number | null;
+    phq9_severity: string | null;
+    gad7_score: number | null;
+    gad7_severity: string | null;
+    baseline_level: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("phq9_score, phq9_severity, gad7_score, gad7_severity, baseline_level")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setClinicalProfile(data as typeof clinicalProfile);
+      });
+  }, [user]);
+
   // Auto-resize textarea
   useEffect(() => {
     const ta = textareaRef.current;
@@ -132,7 +153,15 @@ export default function Journal() {
       const res = await fetch("http://localhost:8000/api/journal/summarize/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: entry.content }),
+        body: JSON.stringify({
+          content: entry.content,
+          // Clinical profile — personalize AI insight depth
+          phq9_score: clinicalProfile?.phq9_score ?? null,
+          phq9_severity: clinicalProfile?.phq9_severity ?? null,
+          gad7_score: clinicalProfile?.gad7_score ?? null,
+          gad7_severity: clinicalProfile?.gad7_severity ?? null,
+          baseline_level: clinicalProfile?.baseline_level ?? null,
+        }),
       });
 
       if (!res.ok || !res.body) throw new Error("Stream unavailable");

@@ -11,6 +11,7 @@ import sys
 import os
 import json
 import asyncio
+import httpx
 
 # Add services to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
@@ -41,6 +42,11 @@ class ChatRequest(BaseModel):
     phq9_severity: Optional[str] = None
     gad7_score: Optional[int] = None
     gad7_severity: Optional[str] = None
+    # Behavioural context — passed pre-fetched from the frontend
+    # Each mood entry: {emoji, label, stress_score, note}
+    # Each journal entry: {ai_summary}
+    mood_context: Optional[List[dict]] = None
+    journal_context: Optional[List[dict]] = None
 
 class ChatResponse(BaseModel):
     """Chat response schema"""
@@ -93,6 +99,8 @@ def get_rag_chat_response(request: ChatRequest) -> ChatResponse:
             phq9_severity=request.phq9_severity,
             gad7_score=request.gad7_score,
             gad7_severity=request.gad7_severity,
+            mood_context=request.mood_context,
+            journal_context=request.journal_context,
         )
         
         return ChatResponse(reply=reply)
@@ -168,6 +176,8 @@ async def _stream_rag_response(request: ChatRequest) -> AsyncGenerator[str, None
                 phq9_severity     = request.phq9_severity,
                 gad7_score        = request.gad7_score,
                 gad7_severity     = request.gad7_severity,
+                mood_context      = request.mood_context,
+                journal_context   = request.journal_context,
             )
 
         full_response: str = await asyncio.to_thread(_blocking_generate)
