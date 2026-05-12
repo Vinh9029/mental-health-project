@@ -328,6 +328,39 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          id: string
+          recipient_id: string
+          actor_id: string
+          type: string
+          post_id: string
+          comment_preview: string | null
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          recipient_id: string
+          actor_id: string
+          type: string
+          post_id: string
+          comment_preview?: string | null
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          recipient_id?: string
+          actor_id?: string
+          type?: string
+          post_id?: string
+          comment_preview?: string | null
+          is_read?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
       user_states: {
         Row: {
           created_at: string | null

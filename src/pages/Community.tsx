@@ -516,6 +516,18 @@ function PostCard({
     if (!commentText.trim()) return;
     setSubmitting(true);
     await supabase.from("comments").insert({ post_id: post.id, user_id: user.id, content: commentText.trim() });
+
+    // Notify post owner (skip if commenting on own post)
+    if (post.user_id !== user.id) {
+      await supabase.from("notifications").insert({
+        recipient_id: post.user_id,
+        actor_id: user.id,
+        type: "comment_on_post",
+        post_id: post.id,
+        comment_preview: commentText.trim().slice(0, 100),
+      });
+    }
+
     setCommentText(""); setSubmitting(false); onRefresh();
   }
 
@@ -735,6 +747,18 @@ function CommentItem({
     await supabase.from("comments").insert({
       post_id: postId, user_id: userId, parent_comment_id: comment.id, content: replyText.trim(),
     });
+
+    // Notify original commenter (skip self-reply)
+    if (comment.user_id !== userId) {
+      await supabase.from("notifications").insert({
+        recipient_id: comment.user_id,
+        actor_id: userId,
+        type: "reply_on_comment",
+        post_id: postId,
+        comment_preview: replyText.trim().slice(0, 100),
+      });
+    }
+
     setReplyText(""); setReplyOpen(false); setSubmitting(false); onRefresh();
   }
 
