@@ -53,6 +53,7 @@ class ChatResponse(BaseModel):
     reply: str
     detected_label: Optional[str] = None
     requires_crisis_support: bool = False
+    sources: Optional[List[dict]] = None
 
 def get_rag_chat_response(request: ChatRequest) -> ChatResponse:
     """
@@ -87,7 +88,7 @@ def get_rag_chat_response(request: ChatRequest) -> ChatResponse:
         is_vietnamese = (generator.detect_language(request.message) == 'vi')
         
         # Generate response with RAG
-        reply = generator.generate_response(
+        result = generator.generate_response(
             user_query=request.message,
             expanded_query=expanded_query,
             retriever=retriever,
@@ -103,7 +104,10 @@ def get_rag_chat_response(request: ChatRequest) -> ChatResponse:
             journal_context=request.journal_context,
         )
         
-        return ChatResponse(reply=reply)
+        return ChatResponse(
+            reply=result["reply"],
+            sources=result["sources"]
+        )
     except Exception as e:
         # If RAG not available, return None to trigger fallback
         print(f"RAG service error: {e}")
@@ -163,7 +167,7 @@ async def _stream_rag_response(request: ChatRequest) -> AsyncGenerator[str, None
         # ── Offload blocking LLM call to thread pool ─────────────────────────
         # generate_response() calls retriever.invoke() (Pinecone) + LLM.
         # Running it in a thread means asyncio.sleep() below fires correctly.
-        def _blocking_generate() -> str:
+        def _blocking_generate() -> dict:
             return generator.generate_response(
                 user_query        = request.message,
                 expanded_query    = expanded_query,
@@ -180,15 +184,26 @@ async def _stream_rag_response(request: ChatRequest) -> AsyncGenerator[str, None
                 journal_context   = request.journal_context,
             )
 
-        full_response: str = await asyncio.to_thread(_blocking_generate)
+        gen_result: dict = await asyncio.to_thread(_blocking_generate)
+        full_response = gen_result["reply"]
+        sources = gen_result["sources"]
 
         # ── Word-by-word replay ───────────────────────────────────────────────
         words = full_response.split(" ")
         for i, word in enumerate(words):
             chunk   = word if i == 0 else " " + word
-            payload = json.dumps({"token": chunk, "detected_label": detected_label, "requires_crisis_support": False})
+            payload = json.dumps({
+                "token": chunk, 
+                "detected_label": detected_label, 
+                "requires_crisis_support": False
+            })
             yield f"data: {payload}\n\n"
             await asyncio.sleep(0.02)   # ≈ 50 words/sec — comfortable reading pace
+
+        # ── Send sources at the end ──────────────────────────────────────────
+        if sources:
+            payload = json.dumps({"sources": sources})
+            yield f"data: {payload}\n\n"
 
         yield "data: [DONE]\n\n"
 

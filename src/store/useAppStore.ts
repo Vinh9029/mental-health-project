@@ -21,6 +21,12 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  sources?: Array<{
+    content: string;
+    source: string;
+    page: number | string;
+    ref: string;
+  }>;
 }
 
 interface AppState {

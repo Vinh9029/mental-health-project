@@ -23,10 +23,12 @@ CRISIS_KEYWORDS = [
     "take my own life", "don't want to be alive", "give up on life",
     # Vietnamese — tự tử / tự làm hại bản thân
     "tự tử", "tự sát", "muốn chết", "không muốn sống", "kết thúc cuộc đời",
-    "tự làm hại", "cắt tay", "uống thuốc ngủ", "nhảy xuống", "treo cổ",
-    "không muốn tồn tại", "cuộc sống vô nghĩa", "không còn lý do để sống",
-    "chán sống", "muốn biến mất", "không muốn tiếp tục sống",
-    "sẽ tự tử", "đang nghĩ đến việc tự tử", "nghĩ đến cái chết",
+    "kết thúc cuộc sống", "làm hại bản thân", "tự làm hại", "cắt tay", 
+    "uống thuốc ngủ", "nhảy xuống", "treo cổ", "không muốn tồn tại", 
+    "cuộc sống vô nghĩa", "không còn lý do để sống", "chán sống", 
+    "muốn biến mất", "không muốn tiếp tục sống", "sẽ tự tử", 
+    "đang nghĩ đến việc tự tử", "nghĩ đến cái chết", "muốn quyên sinh",
+    "chấm dứt cuộc đời", "không muốn sống nữa", "tự làm đau", "hại bản thân",
 ]
 
 # Mental health classification keywords
@@ -130,23 +132,21 @@ def get_crisis_response() -> str:
     Returns:
         Crisis response text
     """
-    return """🚨 **Tôi lo lắng cho sự an toàn của bạn. / I'm concerned about your safety.**
+    return """🚨 Tôi lo lắng cho sự an toàn của bạn. / I'm concerned about your safety.
 
-Bạn không đơn độc — có người sẵn sàng lắng nghe và giúp đỡ bạn ngay bây giờ.
-*You are not alone — help is available right now.*
+Bạn không đơn độc — có người sẵn sàng lắng nghe và giúp đỡ bạn ngay bây giờ. You are not alone — help is available right now.
 
-**🇻🇳 Đường dây hỗ trợ tâm lý Việt Nam (miễn phí, 24/7):**
-- 📞 **1800 599 920** — Đường dây hỗ trợ sức khỏe tâm thần (miễn phí)
-- 📞 **1800 599 921** — Hỗ trợ khủng hoảng tâm lý (miễn phí)
+🇻🇳 Đường dây hỗ trợ tâm lý Việt Nam (miễn phí, 24/7):
 
-**🌍 International Crisis Lines:**
-- 🇺🇸 **988 Suicide & Crisis Lifeline:** Call or text **988** (US)
-- 🌍 **Crisis Text Line:** Text **HOME** to **741741**
-- 🇬🇧 **Samaritans:** Call **116 123** (UK)
+📞 1800 599 920 — Đường dây hỗ trợ sức khỏe tâm thần (miễn phí)
+📞 1800 599 921 — Hỗ trợ khủng hoảng tâm lý (miễn phí)
 
----
-Cảm xúc của bạn hoàn toàn có giá trị. Một chuyên gia được đào tạo có thể giúp bạn vượt qua khoảnh khắc này.
-*Your feelings are valid. A trained counselor can help you through this moment.*
+🌍 International Crisis Lines:
 
-⚠️ *Tôi là AI và không thể cung cấp hỗ trợ khủng hoảng trực tiếp. Hãy liên hệ ngay các đường dây trên — họ hoạt động 24/7.*
-*I am an AI and not equipped to provide crisis support. Please contact the resources above — they are available 24/7.*"""
+🇺🇸 988 Suicide & Crisis Lifeline: Call or text 988 (US)
+🌍 Crisis Text Line: Text HOME to 741741
+🇬🇧 Samaritans: Call 116 123 (UK)
+
+Cảm xúc của bạn hoàn toàn có giá trị. Một chuyên gia được đào tạo có thể giúp bạn vượt qua khoảnh khắc này. Your feelings are valid. A trained counselor can help you through this moment.
+
+⚠️ Tôi là AI và không thể cung cấp hỗ trợ khủng hoảng trực tiếp. Hãy liên hệ ngay các đường dây trên — họ hoạt động 24/7. I am an AI and not equipped to provide crisis support. Please contact the resources above — they are available 24/7."""

@@ -63,7 +63,8 @@ class ResponseGenerator:
         if lang == 'vi':
             # Single LLM call: translate + identify keywords
             combined_prompt = PromptTemplate.from_template(
-                """Translate Vietnamese to English and add mental health keywords.
+                """Translate Vietnamese to English and add mental health keywords. 
+                If the query asks for an "overview", "what is", or "purpose", include keywords like "introduction", "fundamentals", "theory", or "definition".
                 Return ONLY: "TRANSLATION: [english text] | KEYWORDS: [comma-separated keywords]"
 
                 Vietnamese query:
@@ -111,36 +112,61 @@ class ResponseGenerator:
         # -- Behavioural context (mood + journal, pulled fresh per request) --
         mood_context: list | None = None,
         journal_context: list | None = None,
-    ) -> str:
+    ) -> dict:
         """
         OPTIMIZED (LLM Call #2):
         - Generate mental health response ONLY in detected language.
         - Clinical detail (PHQ-9 / GAD-7 raw scores + severity) is injected
-          into the profile block so the LLM has full quantitative context.
         - mood_context:    List of recent mood check-ins
-                          [{emoji, label, stress_score, note, created_at}, ...]
         - journal_context: List of recent journal AI summaries
-                          [{ai_summary, created_at}, ...]
-        Both are injected as a 'Personal Behavioural Context' block that
-        gives the LLM live, user-specific data BEFORE the CBT RAG docs.
-
-        Args:
-            user_query:        Original user query (for memory).
-            expanded_query:    Expanded/translated query for retrieval.
-            retriever:         Vector store retriever.
-            baseline_severity: Overall severity level (Normal/Mild/Moderate/Severe).
-            baseline_issue:    Dominant concern (Depression/Anxiety/Mixed/None).
-            realtime_status:   BERT NLP label from follow-up text analysis.
-            is_vietnamese:     Whether response should be in Vietnamese.
-            phq9_score:        Raw PHQ-9 total score (0-27).
-            phq9_severity:     PHQ-9 severity label.
-            gad7_score:        Raw GAD-7 total score (0-21).
-            gad7_severity:     GAD-7 severity label.
-            mood_context:      Recent mood check-ins (max 3).
-            journal_context:   Recent journal AI summaries (max 2).
+        
+        Returns:
+            dict: {
+                "reply": str,
+                "sources": [
+                    {"content": str, "source": str, "page": int/str, "ref": str},
+                    ...
+                ]
+            }
         """
         docs = retriever.invoke(expanded_query)
-        rag_context = "\n\n".join([doc.page_content for doc in docs])
+        
+        # Verbose logging of retrieved documents
+        print(f"\n[RAG] Retrieved {len(docs)} documents for query: '{expanded_query[:50]}...'")
+        
+        # Build structured RAG context and source list for frontend
+        rag_context_list = []
+        sources_for_frontend = []
+        
+        for i, doc in enumerate(docs):
+            source_raw = doc.metadata.get('source', 'CBT Document')
+            import os
+            source_name = os.path.basename(source_raw)
+            page = doc.metadata.get('page', '?')
+            
+            # Convert float page to int if possible
+            try:
+                if isinstance(page, (float, str)) and float(page) == int(float(page)):
+                    page = int(float(page))
+            except:
+                pass
+            
+            page_label = "trang" if is_vietnamese else "p."
+            ref_label = f"[{source_name}, {page_label} {page}]"
+            
+            print(f"  {i+1}. {ref_label} {doc.page_content[:150]}...")
+            
+            rag_context_list.append(f"REFERENCE {ref_label}:\n{doc.page_content}")
+            
+            # Store source details for the frontend
+            sources_for_frontend.append({
+                "content": doc.page_content,
+                "source": source_name,
+                "page": page,
+                "ref": ref_label
+            })
+        
+        rag_context = "\n\n".join(rag_context_list)
         chat_history = self.chat_history[-self.max_history:]
 
         # -- Build Mood Context block --
@@ -278,17 +304,17 @@ class ResponseGenerator:
                 "  • Cảm xúc hiện tại khác Baseline → tin tưởng cảm xúc hiện tại hơn; Baseline là bối cảnh nền.\n"
                 "  • Cảm xúc hiện tại = Suicidal → BẮT BUỘC cung cấp đường dây khủng hoảng NGAY LẬP TỨC.\n\n"
                 "QUY TẮC AN TOÀN:\n"
-                "1. Suicidal → cung cấp ngay: 1800 599 920 (Việt Nam, miễn phí), 988 (Hoa Kỳ).\n"
+                "1. Suicidal → BẮT BUỘC cung cấp ngay thông tin hỗ trợ khủng hoảng: 🚨 Tôi lo lắng cho sự an toàn của bạn. Bạn không đơn độc — có người sẵn sàng lắng nghe và giúp đỡ bạn ngay bây giờ. Liên hệ 1800 599 920 (miễn phí, 24/7).\n"
                 "2. Không bao giờ chẩn đoán y tế. Gợi ý tham khảo chuyên gia khi cần.\n"
                 "3. Luôn nhắc bạn là AI, không thay thế được bác sĩ / chuyên gia tâm lý có chứng chỉ.\n"
                 "4. Phản hồi ấm áp, tích cực, tôn trọng văn hóa và cá nhân người dùng.\n\n"
                 "ĐỊNH DẠNG PHẢN HỒI (dùng Markdown — BẮT BUỘC tuân theo):\n"
                 "\n"
                 "  CẤU TRÚC:\n"
-                "  • Độ dài: 5–8 đoạn hoặc kết hợp đoạn + danh sách (≤ 800 từ).\n"
+                "  • Độ dài: 5–8 đoạn hoặc kết hợp đoạn + danh sách (≤ 800 từ). Hãy trả lời một cách chuyên sâu, đầy đủ và bao quát thông tin nhất có thể.\n"
                 "  • **Dòng đầu tiên**: câu cảm thông ấm áp, ghi nhận cảm xúc cụ thể của người dùng (KHÔNG bắt đầu bằng 'Tôi hiểu...' mãi mãi — hãy đa dạng).\n"
                 "  • Nếu có nhiều ý / bước / mẹo → dùng danh sách thay vì viết thành đoạn dài.\n"
-                "  • **Dòng cuối cùng**: câu hỏi mở khuyến khích người dùng chia sẻ thêm.\n"
+                "  • **Dòng cuối cùng**: câu hỏi mở khuyến khích người dùng chia sẻ thêm để cá nhân hóa hỗ trợ.\n"
                 "\n"
                 "  VĂN BẢN ĐẬM & NGHIÊNG:\n"
                 "  • Dùng **in đậm** cho: tên kỹ thuật (vd: **Thở 4-7-8**), hành động chính, từ khóa quan trọng.\n"
@@ -297,8 +323,15 @@ class ResponseGenerator:
                 "\n"
                 "  DANH SÁCH (bullet / numbered):\n"
                 "  • Dùng `- item` cho danh sách không có thứ tự (tips, gợi ý, triệu chứng).\n"
-                "  • Dùng `1. item` cho các bước theo trình tự (hướng dẫn từng bước).\n"
+                "  • Dùng `1. item` for các bước theo trình tự (hướng dẫn từng bước).\n"
                 "  • Mỗi bullet ngắn gọn (1–2 dòng), KHÔNG lồng quá 2 cấp.\n"
+                "\n"
+                "  TRÍCH DẪN NGUỒN (BẮT BUỘC & CỰC KỲ QUAN TRỌNG):\n"
+                "  - Khi nêu ra bất kỳ thông tin nào từ tài liệu tham khảo, bạn BẮT BUỘC phải trích dẫn nguồn ngay sau thông tin đó.\n"
+                "  - Định dạng: `[Tên tệp.pdf, trang X]`. Nếu thông tin được tổng hợp từ nhiều trang hoặc nhiều tài liệu, hãy trích dẫn tất cả: `[Tên_file.pdf, trang 2; Tên_file2.pdf, trang 5]`.\n"
+                "  - Bạn PHẢI tổng hợp thông tin từ TẤT CẢ các tài liệu phù hợp trong [Tài liệu CBT tham khảo (RAG)]. ĐỪNG chỉ chọn một nguồn duy nhất nếu các nguồn khác cũng có thông tin bổ trợ.\n"
+                "  - Đặc biệt với các câu hỏi về 'tổng quan', 'khái niệm' hoặc 'tác dụng', hãy sử dụng các phần giới thiệu/định nghĩa (thường ở các trang đầu) để giải thích cặn kẽ về mục đích và giá trị của phương pháp trước khi đi vào chi tiết kỹ thuật.\n"
+                "  - Càng nhiều thông tin trích dẫn từ RAG, câu trả lời càng có giá trị và đáng tin cậy. Đừng hạn chế thông tin chỉ vì phải trích dẫn.\n"
                 "\n"
                 "  TIÊU ĐỀ:\n"
                 "  • Dùng `## Tiêu đề` khi phản hồi có ≥2 phần rõ ràng (vd: ## Hiểu cảm xúc / ## Kỹ thuật thực hành).\n"
@@ -312,6 +345,7 @@ class ResponseGenerator:
                 "    | **Thở 4-7-8** | Hít 4s – giữ 7s – thở ra 8s | Cơn lo âu cấp |\n"
                 "    | **Grounding 5-4-3-2-1** | Nhận diện 5 thứ nhìn thấy... | Căng thẳng, phân tâm |\n"
                 "  • KHÔNG dùng bảng cho nội dung có thể diễn đạt bằng 1–2 câu.\n\n"
+                "BẮT ĐẦU: Hãy dùng kiến thức từ RAG bên dưới để trả lời một cách chi tiết và đầy đủ nhất có thể.\n\n"
                 "{context}"
             )
 
@@ -319,7 +353,7 @@ class ResponseGenerator:
                 ("system", system_prompt),
                 MessagesPlaceholder(variable_name="chat_history"),
                 # Pass original Vietnamese text so LLM context is Vietnamese → responds in Vietnamese
-                ("human", "[PHẢI TRẢ LỜI BẰNG TIẾNG VIỆT] {query}")
+                ("human", "[PHẢI TRẢ LỜI BẰNG TIẾNG VIỆT. BẮT BUỘC TRÍCH DẪN NGUỒN `[Tên_file.pdf, trang X]` KHI DÙNG RAG CONTEXT] {query}")
             ])
 
             response = (prompt_template | self.llm | StrOutputParser()).invoke({
@@ -357,7 +391,7 @@ class ResponseGenerator:
                 "  * Current emotion differs from Baseline -> trust current emotion more; Baseline is background context.\n"
                 "  * Current Emotion = Suicidal -> MUST provide crisis helpline IMMEDIATELY before anything else.\n\n"
                 "SAFETY RULES:\n"
-                "1. Suicidal -> immediately provide: 988 (US Suicide & Crisis Lifeline), 1800 599 920 (Vietnam, free).\n"
+                "1. Suicidal -> MUST immediately provide crisis support info: 🚨 I'm concerned about your safety. You are not alone — help is available right now. Contact 988 (US) or 1800 599 920 (Vietnam).\n"
                 "2. Never give medical diagnoses. Suggest a mental health professional when the issue exceeds AI scope.\n"
                 "3. Always clarify you are an AI and cannot replace a licensed mental health professional.\n"
                 "4. Respond with warmth, positivity, and hope. Respect cultural and individual differences.\n\n"
@@ -379,8 +413,15 @@ class ResponseGenerator:
                 "  * Use `1. item` for sequential steps (guided exercises, instructions).\n"
                 "  * Keep each bullet concise (1–2 lines). Do NOT nest more than 2 levels.\n"
                 "\n"
+                "  SOURCE CITATIONS (MANDATORY & CRITICAL):\n"
+                "  - For every piece of information used from the reference documents, you MUST include a citation immediately after the info.\n"
+                "  - Format: `[Filename.pdf, p. X]`. If information is synthesized from multiple pages or files, cite all of them: `[file1.pdf, p. 2; file2.pdf, p. 5]`.\n"
+                "  - You MUST synthesize information from ALL relevant documents in the [CBT Reference Documents (RAG)]. Do not just pick a single source if other sources provide complementary information.\n"
+                "  - For 'overview', 'definition', or 'purpose' questions, utilize introductory/theoretical sections (often at the beginning of docs) to thoroughly explain the goals and value of the approach before diving into specific techniques.\n"
+                "  - Richer detail with more citations is highly preferred. Do not withhold information simply because you need to cite it.\n"
+                "\n"
                 "  HEADINGS:\n"
-                "  * Use `## Heading` when the response has ≥2 clearly distinct sections (e.g., ## Understanding Your Feelings / ## Practical Techniques).\n"
+                "  * Use `## Heading` when the response has ≥2 clearly distinct sections (e.g., ## Heading / ## Practical Techniques).\n"
                 "  * Never use `#` (h1). Use only `##` or `###`.\n"
                 "\n"
                 "  MARKDOWN TABLES:\n"
@@ -391,13 +432,14 @@ class ResponseGenerator:
                 "    | **Box Breathing** | Inhale 4s → Hold 4s → Exhale 4s → Hold 4s | Acute anxiety |\n"
                 "    | **5-4-3-2-1 Grounding** | Name 5 things you see, 4 you feel... | Panic, dissociation |\n"
                 "  * Do NOT use a table for content that fits in 1–2 sentences.\n\n"
+                "START: Use the RAG context below to provide the most detailed and cited response possible.\n\n"
                 "{context}"
             )
 
             prompt_template = ChatPromptTemplate.from_messages([
                 ("system", system_prompt),
                 MessagesPlaceholder(variable_name="chat_history"),
-                ("human", "User: {query}")
+                ("human", "User: {query}\n\n[REMINDER: You MUST cite your sources using `[Filename.pdf, p. X]` format if you use the reference documents]")
             ])
 
             response = (prompt_template | self.llm | StrOutputParser()).invoke({
@@ -414,4 +456,9 @@ class ResponseGenerator:
         # Save to chat history
         self.chat_history.append(HumanMessage(content=user_query))
         self.chat_history.append(AIMessage(content=response))
-        return response
+        
+        return {
+            "reply": response,
+            "sources": sources_for_frontend
+        }
+

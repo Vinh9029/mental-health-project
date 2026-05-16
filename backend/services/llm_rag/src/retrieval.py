@@ -54,10 +54,11 @@ class AdvancedRetriever:
     - Embedding: 384 dims (all-MiniLM-L6-v2) - matches Pinecone index
     - Cross-Encoder: Local HuggingFace model
     """
-    def __init__(self, vectorstore, model_name: str, search_k: int = 10, top_n: int = 3):
+    def __init__(self, vectorstore, model_name: str, search_k: int = None, top_n: int = None):
+        import os
         self.vectorstore = vectorstore
-        self.search_k = search_k
-        self.top_n = top_n
+        self.search_k = search_k or int(os.getenv("SEARCH_K", 10))
+        self.top_n = top_n or int(os.getenv("TOP_N", 3))
         self.model_name = model_name
 
     def get_retriever(self):

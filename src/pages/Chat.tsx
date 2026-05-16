@@ -9,6 +9,12 @@ import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAppStore } from "@/store/useAppStore";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { classifyText } from "@/lib/chatUtils";
 import { useReassessment } from "@/hooks/useReassessment";
 import ReassessmentBanner from "@/components/ReassessmentBanner";
@@ -17,9 +23,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { getAvatarEmoji } from "@/lib/avatars";
 import { useMoodCheckin } from "@/hooks/useMoodCheckin";
 import MoodCheckInModal from "@/components/MoodCheckInModal";
+import VerifiedSourcePopup from "@/components/VerifiedSourcePopup";
 
 // Custom Markdown components for rich chat bubble rendering
-const markdownComponents = {
+const getMarkdownComponents = (sources?: Array<{content: string, source: string, page: number | string, ref: string}>) => ({
   // Headings
   h2: ({ children }: React.HTMLAttributes<HTMLHeadingElement>) => (
     <h2 className="text-base font-semibold text-foreground mt-3 mb-1.5 pb-0.5 border-b border-border/40">{children}</h2>
@@ -68,14 +75,51 @@ const markdownComponents = {
     <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>
   ),
   // Paragraph spacing
-  p: ({ children }: React.HTMLAttributes<HTMLParagraphElement>) => (
-    <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
-  ),
+  p: ({ children }: { children: React.ReactNode }) => {
+    const processChild = (child: React.ReactNode): React.ReactNode => {
+      if (typeof child === 'string') {
+        // Regex to match citations like [1.pdf, p. 12] or [sach.pdf, trang 5]
+        const parts = child.split(/(\[[\w\d.-]+(?:\.pdf)?,\s*(?:p\.|trang)\s*[\d.]+\])/gi);
+        return parts.map((part, i) => {
+          if (part.match(/\[[\w\d.-]+(?:\.pdf)?,\s*(?:p\.|trang)\s*[\d.]+\]/i)) {
+            const refText = part.replace(/[\[\]]/g, '');
+            // Find content for this citation from sources with robust matching
+            const sourceInfo = sources?.find(s => 
+              s.ref === part || 
+              s.ref.replace(/\s/g, '') === part.replace(/\s/g, '')
+            );
+            
+            return (
+              <VerifiedSourcePopup 
+                key={i} 
+                refText={refText} 
+                sourceInfo={sourceInfo} 
+              />
+            );
+          }
+          return part;
+        });
+      }
+      return child;
+    };
+
+    return (
+      <p className="mb-2 last:mb-0 leading-relaxed">
+        {Array.isArray(children) 
+          ? children.map((child, idx) => (
+              <span key={idx}>
+                {processChild(child)}
+              </span>
+            ))
+          : processChild(children)}
+      </p>
+    );
+  },
   // Blockquote
   blockquote: ({ children }: React.HTMLAttributes<HTMLElement>) => (
     <blockquote className="border-l-2 border-primary/40 pl-3 my-2 text-muted-foreground italic">{children}</blockquote>
   ),
-};
+});
 
 const quickReplies = [
   "I'm feeling anxious",
@@ -166,6 +210,7 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState<string | null>(null);
+  const [streamingSources, setStreamingSources] = useState<any[]>([]);
   const [userAvatar, setUserAvatar] = useState("🙂");
   const [showMoodModal, setShowMoodModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -237,7 +282,11 @@ export default function Chat() {
             
           if (!error && data && data.length > 0) {
             data.forEach((msg) => {
-              addChatMessage({ role: msg.role as "user" | "assistant", content: msg.content });
+              addChatMessage({ 
+                role: msg.role as "user" | "assistant", 
+                content: msg.content,
+                sources: msg.sources as any[] 
+              });
             });
             return;
           }
@@ -266,6 +315,7 @@ export default function Chat() {
     addChatMessage({ role: "user", content: text });
     setIsLoading(true);
     setStreamingMessage(""); // start streaming bubble immediately
+    setStreamingSources([]); // clear previous streaming sources
 
     if (user) {
       await supabase.from("chat_messages").insert({
@@ -306,6 +356,7 @@ export default function Chat() {
       const decoder = new TextDecoder();
       let fullText = "";
       let buffer = "";
+      let accumulatedSources: any[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -320,9 +371,14 @@ export default function Chat() {
           const payload = line.slice(6).trim();
           if (payload === "[DONE]") break;
           try {
-            const { token } = JSON.parse(payload);
-            fullText += token;
-            setStreamingMessage(fullText);
+            const data = JSON.parse(payload);
+            if (data.token) {
+              fullText += data.token;
+              setStreamingMessage(fullText);
+            } else if (data.sources) {
+              accumulatedSources = data.sources;
+              setStreamingSources(accumulatedSources);
+            }
           } catch {
             // skip malformed chunk
           }
@@ -330,14 +386,16 @@ export default function Chat() {
       }
 
       // Commit to store and clear streaming bubble
-      addChatMessage({ role: "assistant", content: fullText });
+      addChatMessage({ role: "assistant", content: fullText, sources: accumulatedSources });
       setStreamingMessage(null);
+      setStreamingSources([]);
 
       if (user) {
         await supabase.from("chat_messages").insert({
           user_id: user.id,
           role: "assistant",
-          content: fullText
+          content: fullText,
+          sources: accumulatedSources
         });
       }
     } catch {
@@ -352,222 +410,224 @@ export default function Chat() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Navbar */}
-      <nav className="shrink-0 bg-background/80 backdrop-blur-md border-b z-10">
-        <div className="flex items-center justify-between h-14 px-4">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg hero-gradient flex items-center justify-center">
-              <Brain className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="font-heading text-lg font-semibold text-foreground">MindCare AI</span>
-          </Link>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/screening">Take Screening</Link>
-          </Button>
-        </div>
-      </nav>
+    <TooltipProvider delayDuration={400}>
+      <div className="h-screen flex flex-col bg-background">
+        {/* Navbar */}
+        <nav className="shrink-0 bg-background/80 backdrop-blur-md border-b z-10">
+          <div className="flex items-center justify-between h-14 px-4">
+            <Link to="/" className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg hero-gradient flex items-center justify-center">
+                <Brain className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <span className="font-heading text-lg font-semibold text-foreground">MindCare AI</span>
+            </Link>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/screening">Take Screening</Link>
+            </Button>
+          </div>
+        </nav>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Chat Area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-6">
-            <div className="max-w-2xl mx-auto space-y-4">
-              <AnimatePresence initial={false}>
-                {chatMessages.map((msg) => (
-                  <motion.div
-                    key={msg.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                  >
-                    {msg.role === "assistant" && (
+        <div className="flex-1 flex overflow-hidden">
+          {/* Chat Area */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-4 py-6">
+              <div className="max-w-2xl mx-auto space-y-4">
+                <AnimatePresence initial={false}>
+                  {chatMessages.map((msg) => (
+                    <motion.div
+                      key={msg.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      {msg.role === "assistant" && (
+                        <Avatar className="h-8 w-8 shrink-0 mt-1">
+                          <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                            <Brain className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div
+                        className={`max-w-[75%] rounded-2xl px-5 py-3 text-sm leading-relaxed ${
+                          msg.role === "user"
+                            ? "hero-gradient text-primary-foreground rounded-br-md"
+                            : "bg-card border text-card-foreground rounded-bl-md card-elevated"
+                        }`}
+                      >
+                        {msg.role === "assistant" ? (
+                          <div className="prose prose-sm max-w-none text-card-foreground">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={getMarkdownComponents(msg.sources)}
+                            >
+                              {msg.content}
+                            </ReactMarkdown>
+                            {/* TTS Speaker button */}
+                            <div className="flex justify-end mt-2">
+                              <button
+                                onClick={() => speak(msg.id, msg.content)}
+                                title={speakingId === msg.id ? "Stop reading" : "Read aloud"}
+                                className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-all ${
+                                  speakingId === msg.id
+                                    ? "bg-primary/15 text-primary"
+                                    : "text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                                }`}
+                              >
+                                {speakingId === msg.id ? (
+                                  <><VolumeX className="h-3.5 w-3.5" /><span>Stop</span></>
+                                ) : (
+                                  <><Volume2 className="h-3.5 w-3.5" /><span>Read</span></>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          msg.content
+                        )}
+                      </div>
+                      {msg.role === "user" && (
+                        <Avatar className="h-8 w-8 shrink-0 mt-1">
+                          <AvatarFallback className="bg-secondary text-base">
+                            {userAvatar}
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+
+                {/* Streaming / typing bubble */}
+                <AnimatePresence>
+                  {streamingMessage !== null && (
+                    <motion.div
+                      key="streaming"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="flex gap-3 justify-start"
+                    >
                       <Avatar className="h-8 w-8 shrink-0 mt-1">
                         <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                           <Brain className="h-4 w-4" />
                         </AvatarFallback>
                       </Avatar>
-                    )}
-                    <div
-                      className={`max-w-[75%] rounded-2xl px-5 py-3 text-sm leading-relaxed ${
-                        msg.role === "user"
-                          ? "hero-gradient text-primary-foreground rounded-br-md"
-                          : "bg-card border text-card-foreground rounded-bl-md card-elevated"
-                      }`}
-                    >
-                      {msg.role === "assistant" ? (
-                        <div className="prose prose-sm max-w-none text-card-foreground">
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={markdownComponents}
-                          >
-                            {msg.content}
-                          </ReactMarkdown>
-                          {/* TTS Speaker button */}
-                          <div className="flex justify-end mt-2">
-                            <button
-                              onClick={() => speak(msg.id, msg.content)}
-                              title={speakingId === msg.id ? "Stop reading" : "Read aloud"}
-                              className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-all ${
-                                speakingId === msg.id
-                                  ? "bg-primary/15 text-primary"
-                                  : "text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                              }`}
-                            >
-                              {speakingId === msg.id ? (
-                                <><VolumeX className="h-3.5 w-3.5" /><span>Stop</span></>
-                              ) : (
-                                <><Volume2 className="h-3.5 w-3.5" /><span>Read</span></>
-                              )}
-                            </button>
+                      <div className="max-w-[75%] rounded-2xl rounded-bl-md px-5 py-3 bg-card border text-card-foreground card-elevated text-sm leading-relaxed">
+                        {streamingMessage.length === 0 ? (
+                          /* Initial dots while LLM is generating */
+                          <div className="flex gap-1 py-1">
+                            <span className="h-2 w-2 rounded-full bg-primary animate-pulse-gentle" />
+                            <span className="h-2 w-2 rounded-full bg-primary animate-pulse-gentle" style={{ animationDelay: "0.2s" }} />
+                            <span className="h-2 w-2 rounded-full bg-primary animate-pulse-gentle" style={{ animationDelay: "0.4s" }} />
                           </div>
-                        </div>
-                      ) : (
-                        msg.content
-                      )}
-                    </div>
-                    {msg.role === "user" && (
-                      <Avatar className="h-8 w-8 shrink-0 mt-1">
-                        <AvatarFallback className="bg-secondary text-base">
-                          {userAvatar}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                        ) : (
+                          /* Live markdown render with blinking cursor */
+                          <div className="prose prose-sm max-w-none text-card-foreground">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={getMarkdownComponents(streamingSources)}
+                            >
+                              {streamingMessage}
+                            </ReactMarkdown>
+                            <span
+                              className="inline-block w-0.5 h-4 bg-primary ml-0.5 align-middle"
+                              style={{ animation: "blink 0.9s step-end infinite" }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-              {/* Streaming / typing bubble */}
-              <AnimatePresence>
-                {streamingMessage !== null && (
-                  <motion.div
-                    key="streaming"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="flex gap-3 justify-start"
-                  >
-                    <Avatar className="h-8 w-8 shrink-0 mt-1">
-                      <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                        <Brain className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="max-w-[75%] rounded-2xl rounded-bl-md px-5 py-3 bg-card border text-card-foreground card-elevated text-sm leading-relaxed">
-                      {streamingMessage.length === 0 ? (
-                        /* Initial dots while LLM is generating */
-                        <div className="flex gap-1 py-1">
-                          <span className="h-2 w-2 rounded-full bg-primary animate-pulse-gentle" />
-                          <span className="h-2 w-2 rounded-full bg-primary animate-pulse-gentle" style={{ animationDelay: "0.2s" }} />
-                          <span className="h-2 w-2 rounded-full bg-primary animate-pulse-gentle" style={{ animationDelay: "0.4s" }} />
-                        </div>
-                      ) : (
-                        /* Live markdown render with blinking cursor */
-                        <div className="prose prose-sm max-w-none text-card-foreground">
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={markdownComponents}
-                          >
-                            {streamingMessage}
-                          </ReactMarkdown>
-                          <span
-                            className="inline-block w-0.5 h-4 bg-primary ml-0.5 align-middle"
-                            style={{ animation: "blink 0.9s step-end infinite" }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* No longer need the old dots-only loader */}
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
-
-          {/* Re-assessment banner */}
-          {showReassessment && (
-            <ReassessmentBanner nickname={nickname} onDismiss={dismissReassessment} />
-          )}
-
-          {/* Quick replies + Input */}
-          <div className="shrink-0 border-t bg-background px-4 py-3">
-            <div className="max-w-2xl mx-auto">
-              <div className="flex flex-wrap gap-2 mb-3">
-                {quickReplies.map((q) => (
-                  <button
-                    key={q}
-                    onClick={() => sendMessage(q)}
-                    className="text-xs px-3 py-1.5 rounded-full border border-primary/30 text-primary hover:bg-primary/5 transition-colors"
-                  >
-                    {q}
-                  </button>
-                ))}
+                {/* No longer need the old dots-only loader */}
+                <div ref={messagesEndRef} />
               </div>
-              <form
-                onSubmit={(e) => { e.preventDefault(); sendMessage(input); }}
-                className="flex gap-2"
-              >
-                <input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Type your message..."
-                  className="flex-1 h-11 px-4 rounded-xl border bg-card text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
-                />
-                <Button type="submit" variant="hero" size="icon" disabled={!input.trim() || isLoading}>
-                  <Send className="h-4 w-4" />
-                </Button>
-              </form>
+            </div>
+
+            {/* Re-assessment banner */}
+            {showReassessment && (
+              <ReassessmentBanner nickname={nickname} onDismiss={dismissReassessment} />
+            )}
+
+            {/* Quick replies + Input */}
+            <div className="shrink-0 border-t bg-background px-4 py-3">
+              <div className="max-w-2xl mx-auto">
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {quickReplies.map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => sendMessage(q)}
+                      className="text-xs px-3 py-1.5 rounded-full border border-primary/30 text-primary hover:bg-primary/5 transition-colors"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+                <form
+                  onSubmit={(e) => { e.preventDefault(); sendMessage(input); }}
+                  className="flex gap-2"
+                >
+                  <input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Type your message..."
+                    className="flex-1 h-11 px-4 rounded-xl border bg-card text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+                  />
+                  <Button type="submit" variant="hero" size="icon" disabled={!input.trim() || isLoading}>
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </form>
+              </div>
             </div>
           </div>
+
+          {/* Sidebar */}
+          <aside className="hidden lg:flex w-72 shrink-0 border-l bg-card flex-col p-5 overflow-y-auto">
+            <h3 className="font-heading text-lg font-semibold text-card-foreground mb-1">Self-Care Tools</h3>
+            <p className="text-xs text-muted-foreground mb-5">Quick access to wellness resources</p>
+            <div className="space-y-3">
+              {selfCareTools.map((tool) => (
+                <button
+                  key={tool.title}
+                  onClick={() => sendMessage(tool.action)}
+                  className="w-full text-left bg-secondary hover:bg-secondary/70 rounded-xl p-4 transition-colors group"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="h-9 w-9 rounded-lg hero-gradient flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <tool.icon className="h-4 w-4 text-primary-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-secondary-foreground">{tool.title}</p>
+                      <p className="text-xs text-muted-foreground">{tool.description}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {assessmentResult && (
+              <div className="mt-6 bg-secondary rounded-xl p-4">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Your Profile</p>
+                <p className="text-sm font-medium text-secondary-foreground">
+                  {assessmentResult.overallBaseline} — {assessmentResult.primaryIssue}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  PHQ-9: {assessmentResult.phq9Score} · GAD-7: {assessmentResult.gad7Score}
+                </p>
+              </div>
+            )}
+          </aside>
         </div>
 
-        {/* Sidebar */}
-        <aside className="hidden lg:flex w-72 shrink-0 border-l bg-card flex-col p-5 overflow-y-auto">
-          <h3 className="font-heading text-lg font-semibold text-card-foreground mb-1">Self-Care Tools</h3>
-          <p className="text-xs text-muted-foreground mb-5">Quick access to wellness resources</p>
-          <div className="space-y-3">
-            {selfCareTools.map((tool) => (
-              <button
-                key={tool.title}
-                onClick={() => sendMessage(tool.action)}
-                className="w-full text-left bg-secondary hover:bg-secondary/70 rounded-xl p-4 transition-colors group"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="h-9 w-9 rounded-lg hero-gradient flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                    <tool.icon className="h-4 w-4 text-primary-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-secondary-foreground">{tool.title}</p>
-                    <p className="text-xs text-muted-foreground">{tool.description}</p>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {assessmentResult && (
-            <div className="mt-6 bg-secondary rounded-xl p-4">
-              <p className="text-xs font-medium text-muted-foreground mb-2">Your Profile</p>
-              <p className="text-sm font-medium text-secondary-foreground">
-                {assessmentResult.overallBaseline} — {assessmentResult.primaryIssue}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                PHQ-9: {assessmentResult.phq9Score} · GAD-7: {assessmentResult.gad7Score}
-              </p>
-            </div>
-          )}
-        </aside>
+        {/* Daily Mood Check-in Modal */}
+        {showMoodModal && (
+          <MoodCheckInModal
+            onClose={() => setShowMoodModal(false)}
+            onSubmit={submitCheckin}
+          />
+        )}
       </div>
-
-      {/* Daily Mood Check-in Modal */}
-      {showMoodModal && (
-        <MoodCheckInModal
-          onClose={() => setShowMoodModal(false)}
-          onSubmit={submitCheckin}
-        />
-      )}
-    </div>
+    </TooltipProvider>
   );
 }
