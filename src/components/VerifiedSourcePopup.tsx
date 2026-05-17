@@ -55,9 +55,15 @@ const VerifiedSourcePopup: React.FC<VerifiedSourcePopupProps> = ({ refText, sour
             <div className="relative">
               <span className="absolute -top-4 -left-2 text-5xl text-primary/10 font-serif leading-none select-none">“</span>
               <div className="max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
-                <p className="text-xs leading-relaxed text-foreground/90 italic whitespace-pre-wrap relative z-10 px-1">
-                  {sourceInfo?.content?.replace(/\\n/g, '\n').trim() || "Document content not available for this citation."}
-                </p>
+                <div className="text-xs leading-relaxed text-foreground/90 italic relative z-10 px-1 space-y-2">
+                  {sourceInfo?.content ? (
+                    sourceInfo.content.replace(/\\n/g, '\n').split('\n').map((line, idx) => (
+                      line.trim() ? <p key={idx}>{line}</p> : null
+                    ))
+                  ) : (
+                    <p>Document content not available for this citation.</p>
+                  )}
+                </div>
               </div>
               <span className="absolute -bottom-2 -right-1 text-5xl text-primary/10 font-serif leading-none select-none">”</span>
             </div>

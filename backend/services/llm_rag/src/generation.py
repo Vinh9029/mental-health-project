@@ -53,19 +53,94 @@ class ResponseGenerator:
         """
         VIETNAMESE OPTIMIZATION (LLM Call #1):
         - Translate query to English
-        - Identify mental health keywords in SAME call
-        - Returns: (translated_query, english_query)
-
-        This replaces 2 separate calls (translate + expand) into 1 call.
+        - Identify mental health keywords
+        - Classify intent (clinical, general, casual)
+        - Returns: (translated_query, expanded_query, query_type)
         """
+        import re
+        # ── Rule-based casual pre-filter (fast path — no LLM call needed) ─────
+        _CASUAL_PATTERNS = [
+            # Greetings / farewells
+            r"^(hi|hello|hey|xin ch[àa]o|ch[àa]o|good morning|good evening|good night|ch[àa]o bu[ổo]i)",
+            r"^(c[ảa]m [ơo]n|thanks?|thank you|ok(ay)?|alright|t[ạa]m bi[ệe]t|bye|kh[ôo]ng c[óo] g[ìi])",
+            # Everyday chitchat
+            r"(th[ờơ]i ti[ếe]t|cu[ốo]i tu[ầa]n|[ăa]n g[ìi] ngon|ng[ủu] ngon|ch[úu]c m[ừu]ng)",
+            r"^(haha|hihi|hehe|lol|[😂🤣😄😊💚🙏👋])",
+            # Identity questions
+            r"^(b[ạa]n t[êe]n g[ìi]|b[ạa]n l[àa] ai|what('s| is) your name|who are you)",
+            # ── Entertainment / leisure (KEY: prevent wrong RAG trigger) ──────
+            r"(s[áa]ch.*gi[ảa]i tr[íi]|gi[ảa]i tr[íi].*s[áa]ch|g[ợo]i [ýy].*s[áa]ch|s[áa]ch hay|n[êe]n [dđ][oọ][cđ].*s[áa]ch)",
+            r"(quy[êe]n s[áa]ch|[dđ][oọ][cđ] s[áa]ch.*vui|[dđ][oọ][cđ] g[ìi] cho vui)",
+            r"(phim hay|xem phim|b[àa]i h[áa]t|nghe nh[ạa]c|ch[ơo]i game|du l[ịi]ch)",
+            r"(recommend.*book|suggest.*book|book.*fun|book.*entertain|book.*leisure|book.*relax|book.*enjoy)",
+            r"(what.*watch|what.*listen|movie.*recommend|music.*recommend|song.*suggest|game.*recommend)",
+            r"(c[óo] ph[ải]m g[ìi]|xem g[ìi] hay|l[àa]m g[ìi] vui|entertainment|leisure activity)",
+        ]
+        for _pat in _CASUAL_PATTERNS:
+            if re.search(_pat, user_query.strip(), re.IGNORECASE):
+                return user_query, user_query, "casual"
+        # ─────────────────────────────────────────────────────────────────────
+        # ── Tier 1.5: Keyword-score pre-classification (no LLM needed) ────────────
+        # If the query contains clear mental-health keywords, route to RAG even
+        # before reaching the LLM classifier. This prevents the LLM from wrongly
+        # labelling a mental-health query as "casual".
+        _MH_CLINICAL_KEYWORDS = [
+            # CBT & therapy techniques
+            "cbt", "cognitive behavioral", "cognitive behaviour", "nhận thức hành vi",
+            "exposure therapy", "liệu pháp phơi nhiễm",
+            "behavioral activation", "kích hoạt hành vi",
+            "thought record", "nhật ký suy nghĩ",
+            "distorted thinking", "cognitive distortion", "sai lệch nhận thức",
+            "grounding technique", "kỹ thuật neo giữ",
+            "socratic questioning",
+            # Specific symptoms
+            "suicidal", "tự tử", "tự làm đau", "self-harm", "panic attack",
+            "phobia", "ám ảnh", "ptsd", "rối loạn", "disorder",
+            "antidepressant", "thuốc chống trầm cảm",
+            # Clinical assessment
+            "phq-9", "phq9", "gad-7", "gad7", "beck depression",
+        ]
+        _MH_GENERAL_KEYWORDS = [
+            # Conditions (general awareness, not clinical detail)
+            "trầm cảm", "depression", "lo âu", "anxiety", "stress", "căng thẳng",
+            "mất ngủ", "insomnia", "cô đơn", "loneliness",
+            "sức khỏe tâm thần", "mental health", "well-being", "wellbeing",
+            # Wellness practices
+            "thiền", "meditation", "mindfulness", "chánh niệm",
+            "hít thở", "breathing", "thư giãn", "relaxation",
+            "tập thể dục", "exercise", "yoga",
+            # Emotional states in a support context
+            "cảm xúc", "emotion", "tâm trạng", "mood",
+            "coping", "đối phó",
+        ]
+        _q_lower = user_query.lower()
+        if any(kw in _q_lower for kw in _MH_CLINICAL_KEYWORDS):
+            _tier15_type = "clinical"
+        elif any(kw in _q_lower for kw in _MH_GENERAL_KEYWORDS):
+            _tier15_type = "general"
+        else:
+            _tier15_type = None  # let LLM decide
+        # ─────────────────────────────────────────────────────────────────────
         lang = self.detect_language(user_query)
+        # If Tier 1.5 already determined type, we still translate (VI only) but skip LLM classify
+        if _tier15_type and lang != 'vi':
+            return user_query, user_query, _tier15_type
 
         if lang == 'vi':
-            # Single LLM call: translate + identify keywords
             combined_prompt = PromptTemplate.from_template(
-                """Translate Vietnamese to English and add mental health keywords. 
-                If the query asks for an "overview", "what is", or "purpose", include keywords like "introduction", "fundamentals", "theory", or "definition".
-                Return ONLY: "TRANSLATION: [english text] | KEYWORDS: [comma-separated keywords]"
+                """Translate Vietnamese to English, add mental health keywords, and classify query intent.
+                Intent categories:
+                - "clinical": Specific CBT techniques, therapy methods, symptoms, mental health treatment.
+                  Examples: "CBT là gì?", "Kỹ thuật thở 4-7-8", "Triệu chứng trầm cảm", "Cách giảm lo âu lâm sàng".
+                - "general": General mental health overviews, wellness tips, mindfulness basics.
+                  Examples: "Thiền định có lợi gì?", "Sức khỏe tâm thần là gì?", "Cách ngủ ngon hơn".
+                - "casual": Everyday conversation, entertainment, leisure, non-mental-health topics.
+                  Examples: "Gợi ý sách giải trí", "Hôm nay thời tiết thế nào?", "Bạn tên gì?",
+                            "Recommend me a movie", "Suggest books to read for fun", "What games should I play?".
+                  IMPORTANT: Book/movie/music recommendations for ENTERTAINMENT = casual.
+                  IMPORTANT: Questions about the AI itself = casual.
+
+                Return ONLY: "TRANSLATION: [english text] | KEYWORDS: [comma-separated keywords] | TYPE: [clinical/general/casual]"
 
                 Vietnamese query:
                 {query}"""
@@ -73,27 +148,55 @@ class ResponseGenerator:
             chain = combined_prompt | self.llm | StrOutputParser()
             result = chain.invoke({"query": user_query})
 
-            # Parse result format: "TRANSLATION: ... | KEYWORDS: ..."
             try:
-                parts = result.split(" | KEYWORDS: ")
+                parts = result.split(" | ")
                 translated = parts[0].replace("TRANSLATION: ", "").strip()
-                keywords = parts[1].strip() if len(parts) > 1 else ""
+                keywords = parts[1].replace("KEYWORDS: ", "").strip() if len(parts) > 1 else ""
+                q_type = parts[2].replace("TYPE: ", "").strip().lower() if len(parts) > 2 else "general"
+                
+                # Validation — Tier 1.5 override has priority if set
+                if q_type not in ["clinical", "general", "casual"]:
+                    q_type = _tier15_type or "casual"
+                elif _tier15_type and _tier15_type != "casual":
+                    # Tier 1.5 detected MH keywords → upgrade to MH type if LLM said casual
+                    if q_type == "casual":
+                        q_type = _tier15_type
+                
                 expanded = f"{translated}, {keywords}" if keywords else translated
-                return translated, expanded
+                return translated, expanded, q_type
             except:
-                return result.strip(), result.strip()
+                return result.strip(), result.strip(), _tier15_type or "casual"
 
-        # For English, just identify keywords
+        # For English
         keyword_prompt = PromptTemplate.from_template(
-            """Identify mental health keywords and expand user query.
-            Return ONLY expanded query with keywords, no explanation.
+            """Classify this query intent and expand with keywords.
+            Intent categories:
+            - "clinical": CBT techniques, therapy methods, clinical symptoms, mental health treatment.
+              Examples: "What is CBT?", "Breathing techniques for anxiety", "Depression symptoms".
+            - "general": Broad wellness, mindfulness, general mental health overviews.
+              Examples: "Benefits of meditation", "How to sleep better", "What is mental health?".
+            - "casual": Everyday chat, entertainment, leisure, non-mental-health topics.
+              Examples: "Suggest books to read for fun", "Recommend a movie", "What music should I listen to?",
+                        "How are you?", "What's your name?", "Tell me a joke".
+              IMPORTANT: Recommendations for entertainment/fun/leisure = casual (NOT general).
+
+            Return ONLY: "EXPANDED: [query + relevant keywords] | TYPE: [clinical/general/casual]"
 
             User query:
             {query}"""
         )
         chain = keyword_prompt | self.llm | StrOutputParser()
-        expanded = chain.invoke({"query": user_query})
-        return user_query, expanded.strip()
+        result = chain.invoke({"query": user_query})
+        
+        try:
+            parts = result.split(" | ")
+            expanded = parts[0].replace("EXPANDED: ", "").strip()
+            q_type = parts[1].replace("TYPE: ", "").strip().lower() if len(parts) > 1 else "general"
+            if q_type not in ["clinical", "general", "casual"]:
+                q_type = "casual"  # safer default
+            return user_query, expanded, q_type
+        except:
+            return user_query, user_query, "casual"  # safer: don't force RAG on parse failure
 
     def generate_response(
         self,
@@ -103,13 +206,14 @@ class ResponseGenerator:
         baseline_severity: str,
         baseline_issue: str,
         realtime_status: str,
+        query_type: str = "general",
         is_vietnamese: bool = False,
-        # -- Clinical detail fields (optional, enriches LLM context) --
+        # -- Clinical detail fields --
         phq9_score: int | None = None,
         phq9_severity: str | None = None,
         gad7_score: int | None = None,
         gad7_severity: str | None = None,
-        # -- Behavioural context (mood + journal, pulled fresh per request) --
+        # -- Behavioural context --
         mood_context: list | None = None,
         journal_context: list | None = None,
     ) -> dict:
@@ -129,44 +233,50 @@ class ResponseGenerator:
                 ]
             }
         """
-        docs = retriever.invoke(expanded_query)
-        
-        # Verbose logging of retrieved documents
-        print(f"\n[RAG] Retrieved {len(docs)} documents for query: '{expanded_query[:50]}...'")
-        
-        # Build structured RAG context and source list for frontend
-        rag_context_list = []
+        # ── Intent-based RAG Routing ──────────────────────────────────────────
         sources_for_frontend = []
+        rag_context = ""
         
-        for i, doc in enumerate(docs):
-            source_raw = doc.metadata.get('source', 'CBT Document')
-            import os
-            source_name = os.path.basename(source_raw)
-            page = doc.metadata.get('page', '?')
+        # Only perform RAG for clinical or general queries
+        if query_type in ["clinical", "general"]:
+            docs = retriever.invoke(expanded_query)
+            print(f"\n[RAG] ({query_type}) Retrieved {len(docs)} documents for: '{expanded_query[:50]}...'")
             
-            # Convert float page to int if possible
-            try:
-                if isinstance(page, (float, str)) and float(page) == int(float(page)):
-                    page = int(float(page))
-            except:
-                pass
-            
-            page_label = "trang" if is_vietnamese else "p."
-            ref_label = f"[{source_name}, {page_label} {page}]"
-            
-            print(f"  {i+1}. {ref_label} {doc.page_content[:150]}...")
-            
-            rag_context_list.append(f"REFERENCE {ref_label}:\n{doc.page_content}")
-            
-            # Store source details for the frontend
-            sources_for_frontend.append({
-                "content": doc.page_content,
-                "source": source_name,
-                "page": page,
-                "ref": ref_label
-            })
-        
-        rag_context = "\n\n".join(rag_context_list)
+            rag_context_list = []
+            for i, doc in enumerate(docs):
+                source_raw = doc.metadata.get('source', 'CBT Document')
+                import os
+                source_name = os.path.basename(source_raw)
+                page = doc.metadata.get('page', '?')
+                
+                try:
+                    if isinstance(page, (float, str)) and float(page) == int(float(page)):
+                        page = int(float(page))
+                except:
+                    pass
+                
+                page_label = "trang" if is_vietnamese else "p."
+                ref_label = f"[{source_name}, {page_label} {page}]"
+                
+                print(f"  {i+1}. {ref_label} {doc.page_content[:150]}...")
+                rag_context_list.append(f"REFERENCE {ref_label}:\n{doc.page_content}")
+                
+                sources_for_frontend.append({
+                    "content": doc.page_content,
+                    "source": source_name,
+                    "page": page,
+                    "ref": ref_label
+                })
+            rag_context = "\n\n".join(rag_context_list)
+
+            # ── Empty RAG: downgrade to casual so LLM doesn't hallucinate ──────────
+            if not docs:
+                print(f"[RAG] No documents found — downgrading '{query_type}' to general-knowledge response.")
+                query_type = "casual"   # skip CBT prompt path
+                rag_context = "[No relevant reference documents were found in the knowledge base for this query. Answer from general knowledge and be transparent about it.]"
+        else:
+            print(f"\n[RAG] Skipping retrieval for '{query_type}' query.")
+            rag_context = "No reference documents provided for this casual interaction."
         chat_history = self.chat_history[-self.max_history:]
 
         # -- Build Mood Context block --
@@ -280,178 +390,143 @@ class ResponseGenerator:
                 "  -> Rely solely on the clinical Baseline to understand the user's condition."
             )
 
-        # -- Vietnamese prompt --
+        # ── Build previous-response fingerprint to prevent repetition ──────────────
+        _prev_ai_openings: list[str] = []
+        for msg in chat_history:
+            from langchain_core.messages import AIMessage as _AI
+            if isinstance(msg, _AI):
+                _first60 = msg.content.strip()[:60].replace('\n', ' ')
+                if _first60:
+                    _prev_ai_openings.append(f'  • "{_first60}…"')
+        _anti_repeat_block = (
+            "ANTI-REPETITION: You MUST NOT copy or paraphrase the following previous replies.\n"
+            "Start with a COMPLETELY different phrase and structure:\n"
+            + "\n".join(_prev_ai_openings[-3:])
+        ) if _prev_ai_openings else ""
+
+        # -- Vietnamese prompt selection --
         if is_vietnamese:
-            system_prompt = (
-                "NGÔN NGỮ BẮT BUỘC: Bạn PHẢI trả lời 100% bằng tiếng VIỆT, không được dùng tiếng Anh.\n\n"
-                "Bạn là MindCare AI — trợ lý hỗ trợ sức khỏe tâm thần thông tuệ, giàu sự thấu cảm và không phán xét.\n\n"
-
-                "NGUYÊN TẮC GIAO TIẾP:\n"
-                "- Luôn trả lời bằng tiếng Việt tự nhiên, ấm áp, giống cách một người bạn thực sự quan tâm và lắng nghe.\n"
-                "- Ưu tiên sự thấu hiểu cảm xúc trước khi đưa ra lời khuyên hoặc kỹ thuật.\n"
-                "- Tránh giọng điệu máy móc, quá khuôn mẫu hoặc lặp lại câu mở đầu giống nhau.\n\n"
-
-                "HỒ SƠ TÂM LÝ NGƯỜI DÙNG\n"
-                "  Baseline lâm sàng (PHQ-9 + GAD-7, đánh giá 2 tuần qua):\n"
-                "{phq9_line}\n"
-                "{gad7_line}\n"
-                "    Tổng mức độ      : {baseline_severity}\n"
-                "    Vấn đề chủ yếu  : {baseline_issue}\n"
-                "{realtime_block}\n\n"
-                "Hướng dẫn đọc hồ sơ:\n"
-                "  • Normal + không có cảm xúc hiện tại → người dùng ổn, tập trung wellness và phòng ngừa.\n"
-                "  • Mild/Moderate/Severe → điều chỉnh sâu độ hỗ trợ phù hợp với mức độ.\n"
-                "  • Cảm xúc hiện tại khác Baseline → tin tưởng cảm xúc hiện tại hơn; Baseline là bối cảnh nền.\n"
-                "  • Cảm xúc hiện tại = Suicidal → BẮT BUỘC cung cấp đường dây khủng hoảng NGAY LẬP TỨC.\n\n"
-                "QUY TẮC AN TOÀN:\n"
-                "1. Suicidal → BẮT BUỘC cung cấp ngay thông tin hỗ trợ khủng hoảng: 🚨 Tôi lo lắng cho sự an toàn của bạn. Bạn không đơn độc — có người sẵn sàng lắng nghe và giúp đỡ bạn ngay bây giờ. Liên hệ 1800 599 920 (miễn phí, 24/7).\n"
-                "2. Không bao giờ chẩn đoán y tế. Gợi ý tham khảo chuyên gia khi cần.\n"
-                "3. Luôn nhắc bạn là AI, không thay thế được bác sĩ / chuyên gia tâm lý có chứng chỉ.\n"
-                "4. Phản hồi ấm áp, tích cực, tôn trọng văn hóa và cá nhân người dùng.\n\n"
-                "ĐỊNH DẠNG PHẢN HỒI (dùng Markdown — BẮT BUỘC tuân theo):\n"
-                "\n"
-                "  CẤU TRÚC:\n"
-                "  • Độ dài: 5–8 đoạn hoặc kết hợp đoạn + danh sách (≤ 800 từ). Hãy trả lời một cách chuyên sâu, đầy đủ và bao quát thông tin nhất có thể.\n"
-                "  • **Dòng đầu tiên**: câu cảm thông ấm áp, ghi nhận cảm xúc cụ thể của người dùng (KHÔNG bắt đầu bằng 'Tôi hiểu...' mãi mãi — hãy đa dạng).\n"
-                "  • Nếu có nhiều ý / bước / mẹo → dùng danh sách thay vì viết thành đoạn dài.\n"
-                "  • **Dòng cuối cùng**: câu hỏi mở khuyến khích người dùng chia sẻ thêm để cá nhân hóa hỗ trợ.\n"
-                "\n"
-                "  VĂN BẢN ĐẬM & NGHIÊNG:\n"
-                "  • Dùng **in đậm** cho: tên kỹ thuật (vd: **Thở 4-7-8**), hành động chính, từ khóa quan trọng.\n"
-                "  • Dùng *nghiêng* cho: cảm xúc mô tả (vd: *mệt mỏi*, *lo lắng*), nhấn mạnh nhẹ.\n"
-                "  • KHÔNG in đậm toàn bộ câu.\n"
-                "\n"
-                "  DANH SÁCH (bullet / numbered):\n"
-                "  • Dùng `- item` cho danh sách không có thứ tự (tips, gợi ý, triệu chứng).\n"
-                "  • Dùng `1. item` for các bước theo trình tự (hướng dẫn từng bước).\n"
-                "  • Mỗi bullet ngắn gọn (1–2 dòng), KHÔNG lồng quá 2 cấp.\n"
-                "\n"
-                "  TRÍCH DẪN NGUỒN (BẮT BUỘC & CỰC KỲ QUAN TRỌNG):\n"
-                "  - Khi nêu ra bất kỳ thông tin nào từ tài liệu tham khảo, bạn BẮT BUỘC phải trích dẫn nguồn ngay sau thông tin đó.\n"
-                "  - Định dạng: `[Tên tệp.pdf, trang X]`. Nếu thông tin được tổng hợp từ nhiều trang hoặc nhiều tài liệu, hãy trích dẫn tất cả: `[Tên_file.pdf, trang 2; Tên_file2.pdf, trang 5]`.\n"
-                "  - Bạn PHẢI tổng hợp thông tin từ TẤT CẢ các tài liệu phù hợp trong [Tài liệu CBT tham khảo (RAG)]. ĐỪNG chỉ chọn một nguồn duy nhất nếu các nguồn khác cũng có thông tin bổ trợ.\n"
-                "  - Đặc biệt với các câu hỏi về 'tổng quan', 'khái niệm' hoặc 'tác dụng', hãy sử dụng các phần giới thiệu/định nghĩa (thường ở các trang đầu) để giải thích cặn kẽ về mục đích và giá trị của phương pháp trước khi đi vào chi tiết kỹ thuật.\n"
-                "  - Càng nhiều thông tin trích dẫn từ RAG, câu trả lời càng có giá trị và đáng tin cậy. Đừng hạn chế thông tin chỉ vì phải trích dẫn.\n"
-                "\n"
-                "  TIÊU ĐỀ:\n"
-                "  • Dùng `## Tiêu đề` khi phản hồi có ≥2 phần rõ ràng (vd: ## Hiểu cảm xúc / ## Kỹ thuật thực hành).\n"
-                "  • KHÔNG dùng `#` (h1) — chỉ dùng `##` hoặc `###`.\n"
-                "\n"
-                "  BẢNG MARKDOWN:\n"
-                "  • Dùng bảng khi so sánh ≥3 kỹ thuật/phương pháp hoặc tóm tắt nhiều mục cùng loại.\n"
-                "  • Mẫu bảng kỹ thuật:\n"
-                "    | Kỹ thuật | Mô tả ngắn | Khi nào dùng |\n"
-                "    |----------|------------|--------------|\n"
-                "    | **Thở 4-7-8** | Hít 4s – giữ 7s – thở ra 8s | Cơn lo âu cấp |\n"
-                "    | **Grounding 5-4-3-2-1** | Nhận diện 5 thứ nhìn thấy... | Căng thẳng, phân tâm |\n"
-                "  • KHÔNG dùng bảng cho nội dung có thể diễn đạt bằng 1–2 câu.\n\n"
-                "BẮT ĐẦU: Hãy dùng kiến thức từ RAG bên dưới để trả lời một cách chi tiết và đầy đủ nhất có thể.\n\n"
-                "{context}"
-            )
+            if query_type == "casual":
+                system_prompt = (
+                    "Bạn là MindCare AI — một người bạn đồng hành thấu cảm và thân thiện.\n"
+                    "NGÔN NGỮ: Bạn PHẢI trả lời hoàn toàn bằng tiếng VIỆT.\n\n"
+                    "PHONG CÁCH:\n"
+                    "- Đây là một cuộc trò chuyện xã giao hoặc ngoài lề lâm sàng.\n"
+                    "- Hãy trả lời một cách tự nhiên, ấm áp và chân thành như một người bạn.\n"
+                    "- CẤM: TUYỆT ĐỐI không đề cập đến CBT, liệu pháp tâm lý, trích dẫn tài liệu.\n"
+                    "- CẤM: TUYỆT ĐỐI không mở đầu bằng 'Chào bạn! Tôi hiểu cảm xúc hiện tại'.\n"
+                    "- FORMATTING: Sử dụng Markdown một cách đẹp mắt và nhất quán (in đậm các từ khóa quan trọng, sử dụng danh sách dạng bullet, chia đoạn ngắn rõ ràng).\n"
+                    "- Giữ phản hồi ngắn gọn (1-2 đoạn hoặc bullet points), đa dạng câu mở đầu.\n\n"
+                    "{anti_repeat}\n\n"
+                    "HỒ SƠ NGƯỜI DÙNG (Để tham khảo bối cảnh):\n"
+                    "{phq9_line}\n"
+                    "{gad7_line}\n"
+                    "Mức độ: {baseline_severity}\n"
+                    "{realtime_block}\n"
+                )
+            else:
+                system_prompt = (
+                    "NGÔN NGỮ BẮT BUỘC: Bạn PHẢI trả lời 100% bằng tiếng VIỆT.\n"
+                    "Bạn là MindCare AI — trợ lý sức khỏe tâm thần chuyên sâu, thấu cảm.\n\n"
+                    "QUY TẮC QUAN TRỌNG:\n"
+                    "- Trả lời ấm áp, đa dạng câu mở đầu — KHÔNG lặp lại khuôn mẫu.\n"
+                    "- GROUNDING BẮT BUỘC: Câu trả lời PHẢI dựa trực tiếp vào DỮ LIỆU THAM KHẢO bên dưới.\n"
+                    "  Nếu tài liệu có đề cập đến chủ đề → tổng hợp và giải thích từ tài liệu đó.\n"
+                    "  Nếu tài liệu KHÔNG liên quan → thừa nhận và trả lời từ kiến thức tổng quát.\n"
+                    "- TRÍCH DẪN NGUỒN: Dùng `[Tên_file.pdf, trang X]` khi trích từ RAG.\n\n"
+                    "NHẬN THỨC HỔ SƠ (Rất quan trọng):\n"
+                    "- Bạn ĐÃ CÓ ĐẦY ĐỦ thông tin tâm lý của người dùng trong HỒ SƠ bên dưới.\n"
+                    "- Nếu người dùng hỏi về tình trạng tâm lý của họ, HÃY TRẢ LỜI DỰA TRÊN DỮ LIỆU HỒ SƠ ngay —\n"
+                    "  KHÔNG hỏi họ cung cấp thêm thông tin mà bạn đã có. Vi dụ: nếu PHQ-9=12 → nói rõ mức độ trầm cảm.\n\n"
+                    "{anti_repeat}\n\n"
+                    "HỒ SƠ NGƯỜI DÙNG:\n"
+                    "{phq9_line}\n"
+                    "{gad7_line}\n"
+                    "Tình trạng: {baseline_severity} | Vấn đề: {baseline_issue}\n"
+                    "{realtime_block}\n\n"
+                    "DỮ LIỆU THAM KHẢO (RAG):\n"
+                    "{context}"
+                )
 
             prompt_template = ChatPromptTemplate.from_messages([
                 ("system", system_prompt),
                 MessagesPlaceholder(variable_name="chat_history"),
-                # Pass original Vietnamese text so LLM context is Vietnamese → responds in Vietnamese
-                ("human", "[PHẢI TRẢ LỜI BẰNG TIẾNG VIỆT. BẮT BUỘC TRÍCH DẪN NGUỒN `[Tên_file.pdf, trang X]` KHI DÙNG RAG CONTEXT] {query}")
+                ("human", "{query}")
             ])
 
             response = (prompt_template | self.llm | StrOutputParser()).invoke({
-                "context":           context_vi,
+                "context":           rag_context,
                 "chat_history":      chat_history,
-                "query":             user_query,   # ← original Vietnamese, NOT the English translation
+                "query":             user_query,
                 "baseline_severity": _severity,
                 "baseline_issue":    _issue,
                 "realtime_block":    realtime_block_vi,
                 "phq9_line":         phq9_line_vi,
                 "gad7_line":         gad7_line_vi,
+                "anti_repeat":       _anti_repeat_block,
             })
-
-        # -- English prompt --
+        
+        # -- English prompt selection --
         else:
-            system_prompt = (
-                "You are MindCare AI — a compassionate, empathetic, and non-judgmental mental health support assistant.\n\n"
-
-                "COMMUNICATION PRINCIPLES:\n"
-                "- Respond in warm, natural English like a caring, trusted friend who genuinely listens.\n"
-                "- Validate the user's emotions first before offering techniques or advice.\n"
-                "- Vary your opening lines — never start every reply with 'I understand...' or 'I hear you...'.\n"
-                "- Avoid robotic, over-clinical, or formulaic phrasing.\n\n"
-
-                "USER MENTAL HEALTH PROFILE\n"
-                "  Clinical Baseline (PHQ-9 + GAD-7, assessed over the past 2 weeks):\n"
-                "{phq9_line}\n"
-                "{gad7_line}\n"
-                "    Overall Severity : {baseline_severity}\n"
-                "    Dominant Concern : {baseline_issue}\n"
-                "{realtime_block}\n\n"
-                "Profile interpretation guide:\n"
-                "  * Normal + no current emotion -> user is generally well; focus on wellness and prevention.\n"
-                "  * Mild/Moderate/Severe -> tailor the depth of support to match that severity level.\n"
-                "  * Current emotion differs from Baseline -> trust current emotion more; Baseline is background context.\n"
-                "  * Current Emotion = Suicidal -> MUST provide crisis helpline IMMEDIATELY before anything else.\n\n"
-                "SAFETY RULES:\n"
-                "1. Suicidal -> MUST immediately provide crisis support info: 🚨 I'm concerned about your safety. You are not alone — help is available right now. Contact 988 (US) or 1800 599 920 (Vietnam).\n"
-                "2. Never give medical diagnoses. Suggest a mental health professional when the issue exceeds AI scope.\n"
-                "3. Always clarify you are an AI and cannot replace a licensed mental health professional.\n"
-                "4. Respond with warmth, positivity, and hope. Respect cultural and individual differences.\n\n"
-                "RESPONSE FORMAT (use Markdown — STRICTLY follow these rules):\n"
-                "\n"
-                "  STRUCTURE:\n"
-                "  * Length: 3–5 paragraphs or mixed prose + lists (max ~800 words).\n"
-                "  * **First line**: a warm, specific empathy statement acknowledging the user's exact feeling (vary the phrasing each time).\n"
-                "  * If sharing multiple tips, steps, or techniques -> use a list or table, NOT a long paragraph.\n"
-                "  * **Last line**: an open-ended question to invite the user to share more.\n"
-                "\n"
-                "  BOLD & ITALIC:\n"
-                "  * Use **bold** for: technique names (e.g., **Box Breathing**), key action items, critical warnings.\n"
-                "  * Use *italic* for: emotional descriptors (e.g., *overwhelmed*, *exhausted*), gentle emphasis.\n"
-                "  * Do NOT bold entire sentences.\n"
-                "\n"
-                "  LISTS:\n"
-                "  * Use `- item` for unordered lists (tips, options, symptoms).\n"
-                "  * Use `1. item` for sequential steps (guided exercises, instructions).\n"
-                "  * Keep each bullet concise (1–2 lines). Do NOT nest more than 2 levels.\n"
-                "\n"
-                "  SOURCE CITATIONS (MANDATORY & CRITICAL):\n"
-                "  - For every piece of information used from the reference documents, you MUST include a citation immediately after the info.\n"
-                "  - Format: `[Filename.pdf, p. X]`. If information is synthesized from multiple pages or files, cite all of them: `[file1.pdf, p. 2; file2.pdf, p. 5]`.\n"
-                "  - You MUST synthesize information from ALL relevant documents in the [CBT Reference Documents (RAG)]. Do not just pick a single source if other sources provide complementary information.\n"
-                "  - For 'overview', 'definition', or 'purpose' questions, utilize introductory/theoretical sections (often at the beginning of docs) to thoroughly explain the goals and value of the approach before diving into specific techniques.\n"
-                "  - Richer detail with more citations is highly preferred. Do not withhold information simply because you need to cite it.\n"
-                "\n"
-                "  HEADINGS:\n"
-                "  * Use `## Heading` when the response has ≥2 clearly distinct sections (e.g., ## Heading / ## Practical Techniques).\n"
-                "  * Never use `#` (h1). Use only `##` or `###`.\n"
-                "\n"
-                "  MARKDOWN TABLES:\n"
-                "  * Use a table when comparing ≥3 techniques/methods or summarizing multiple structured items.\n"
-                "  * Table template for techniques:\n"
-                "    | Technique | How It Works | Best For |\n"
-                "    |-----------|--------------|----------|\n"
-                "    | **Box Breathing** | Inhale 4s → Hold 4s → Exhale 4s → Hold 4s | Acute anxiety |\n"
-                "    | **5-4-3-2-1 Grounding** | Name 5 things you see, 4 you feel... | Panic, dissociation |\n"
-                "  * Do NOT use a table for content that fits in 1–2 sentences.\n\n"
-                "START: Use the RAG context below to provide the most detailed and cited response possible.\n\n"
-                "{context}"
-            )
+            if query_type == "casual":
+                system_prompt = (
+                    "You are MindCare AI — a warm and empathetic companion.\n"
+                    "STYLE:\n"
+                    "- This is a casual or non-clinical interaction.\n"
+                    "- Respond naturally, like a caring friend.\n"
+                    "- FORBIDDEN: Do NOT mention CBT, therapy techniques, or clinical citations.\n"
+                    "- FORBIDDEN: Do NOT start with 'I understand your current emotional state'.\n"
+                    "- FORMATTING: Use clean, consistent Markdown (bold key terms, use bullet points if listing things, keep paragraphs short and readable).\n"
+                    "- Keep it concise (1-2 paragraphs or short lists). Use a varied, fresh opening.\n\n"
+                    "{anti_repeat}\n\n"
+                    "USER CONTEXT (for tone awareness only):\n"
+                    "{phq9_line}\n"
+                    "{gad7_line}\n"
+                    "Severity: {baseline_severity}\n"
+                    "{realtime_block}"
+                )
+            else:
+                system_prompt = (
+                    "You are MindCare AI — a compassionate mental health assistant.\n\n"
+                    "CRITICAL RULES:\n"
+                    "- GROUNDING: Your response MUST be directly based on the REFERENCE DATA below.\n"
+                    "  If the references address the topic → synthesize and explain from them.\n"
+                    "  If the references are NOT relevant → acknowledge this and use general knowledge.\n"
+                    "- CITATIONS: Use `[Filename.pdf, p. X]` whenever you draw from a reference.\n"
+                    "- TONE: Warm, varied openers — never repeat the same greeting pattern.\n\n"
+                    "PROFILE AWARENESS (Critical):\n"
+                    "- You ALREADY HAVE the user's full psychological profile in USER CONTEXT below.\n"
+                    "- If the user asks about their mental/psychological state, USE THE DATA DIRECTLY.\n"
+                    "  Example: if PHQ-9=12 → state they show moderate depression indicators.\n"
+                    "  Do NOT ask them to provide info you already have.\n\n"
+                    "{anti_repeat}\n\n"
+                    "USER CONTEXT:\n"
+                    "{phq9_line}\n"
+                    "{gad7_line}\n"
+                    "Severity: {baseline_severity} | Issue: {baseline_issue}\n"
+                    "{realtime_block}\n\n"
+                    "REFERENCE DATA (RAG):\n"
+                    "{context}"
+                )
 
             prompt_template = ChatPromptTemplate.from_messages([
                 ("system", system_prompt),
                 MessagesPlaceholder(variable_name="chat_history"),
-                ("human", "User: {query}\n\n[REMINDER: You MUST cite your sources using `[Filename.pdf, p. X]` format if you use the reference documents]")
+                ("human", "{query}")
             ])
 
             response = (prompt_template | self.llm | StrOutputParser()).invoke({
-                "context":           context_en,
+                "context":           rag_context,
                 "chat_history":      chat_history,
-                "query":             user_query,   # ← original user message
+                "query":             user_query,
                 "baseline_severity": _severity,
                 "baseline_issue":    _issue,
                 "realtime_block":    realtime_block_en,
                 "phq9_line":         phq9_line_en,
                 "gad7_line":         gad7_line_en,
+                "anti_repeat":       _anti_repeat_block,
             })
+
 
         # Save to chat history
         self.chat_history.append(HumanMessage(content=user_query))

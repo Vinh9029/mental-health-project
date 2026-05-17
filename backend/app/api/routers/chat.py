@@ -83,11 +83,11 @@ def get_rag_chat_response(request: ChatRequest) -> ChatResponse:
                     history_msgs.append(AIMessage(content=msg.content))
         generator.chat_history = history_msgs[-generator.max_history:]  # Keep within limits
 
-        # Translate & expand query
-        translated_query, expanded_query = generator.translate_and_expand_query(request.message)
+        # Translate & expand query (now returns 3 values)
+        translated_query, expanded_query, query_type = generator.translate_and_expand_query(request.message)
         is_vietnamese = (generator.detect_language(request.message) == 'vi')
         
-        # Generate response with RAG
+        # Generate response with RAG routing
         result = generator.generate_response(
             user_query=request.message,
             expanded_query=expanded_query,
@@ -95,6 +95,7 @@ def get_rag_chat_response(request: ChatRequest) -> ChatResponse:
             baseline_severity=request.baseline_severity or "Normal",
             baseline_issue=request.baseline_issue or "None",
             realtime_status=request.realtime_status or "Normal",
+            query_type=query_type,
             is_vietnamese=is_vietnamese,
             phq9_score=request.phq9_score,
             phq9_severity=request.phq9_severity,
@@ -160,21 +161,20 @@ async def _stream_rag_response(request: ChatRequest) -> AsyncGenerator[str, None
                 history_msgs.append(AIMessage(content=msg.content))
         generator.chat_history = history_msgs[-generator.max_history:]
 
-        # Language detection + query expansion (LLM call #1 for VI queries)
-        translated_query, expanded_query = generator.translate_and_expand_query(request.message)
+        # Language detection + query expansion + intent classification
+        translated_query, expanded_query, query_type = generator.translate_and_expand_query(request.message)
         is_vietnamese = (generator.detect_language(request.message) == "vi")
 
         # ── Offload blocking LLM call to thread pool ─────────────────────────
-        # generate_response() calls retriever.invoke() (Pinecone) + LLM.
-        # Running it in a thread means asyncio.sleep() below fires correctly.
         def _blocking_generate() -> dict:
             return generator.generate_response(
                 user_query        = request.message,
                 expanded_query    = expanded_query,
-                retriever         = retriever,   # ← Pinecone RAG retriever
+                retriever         = retriever,
                 baseline_severity = request.baseline_severity or "Normal",
                 baseline_issue    = request.baseline_issue    or "None",
                 realtime_status   = request.realtime_status   or "",
+                query_type        = query_type,
                 is_vietnamese     = is_vietnamese,
                 phq9_score        = request.phq9_score,
                 phq9_severity     = request.phq9_severity,

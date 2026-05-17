@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export type SeverityLevel = 'Normal' | 'Mild' | 'Moderate' | 'Severe';
 export type PrimaryIssue = 'Depression' | 'Anxiety' | 'None';
@@ -66,16 +67,25 @@ export function calculateBaseline(phq9Scores: number[], gad7Scores: number[]): A
   return { phq9Score, gad7Score, phq9Severity, gad7Severity, overallBaseline, primaryIssue, phq9Q9Score };
 }
 
-export const useAppStore = create<AppState>((set) => ({
-  assessmentResult: null,
-  chatMessages: [],
-  setAssessmentResult: (result) => set({ assessmentResult: result }),
-  addChatMessage: (msg) =>
-    set((state) => ({
-      chatMessages: [
-        ...state.chatMessages,
-        { ...msg, id: crypto.randomUUID(), timestamp: new Date() },
-      ],
-    })),
-  clearChat: () => set({ chatMessages: [] }),
-}));
+export const useAppStore = create<AppState>()(
+  persist(
+    (set) => ({
+      assessmentResult: null,
+      chatMessages: [],
+      setAssessmentResult: (result) => set({ assessmentResult: result }),
+      addChatMessage: (msg) =>
+        set((state) => ({
+          chatMessages: [
+            ...state.chatMessages,
+            { ...msg, id: crypto.randomUUID(), timestamp: new Date() },
+          ],
+        })),
+      clearChat: () => set({ chatMessages: [] }),
+    }),
+    {
+      name: 'mindbloom-app-state',
+      // Only persist assessmentResult — chatMessages are loaded fresh from Supabase
+      partialize: (state) => ({ assessmentResult: state.assessmentResult }),
+    }
+  )
+);

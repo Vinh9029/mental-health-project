@@ -8,7 +8,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useAppStore } from "@/store/useAppStore";
+import { useAppStore, type SeverityLevel, type PrimaryIssue } from "@/store/useAppStore";
 import {
   Tooltip,
   TooltipContent,
@@ -34,7 +34,7 @@ const getMarkdownComponents = (sources?: Array<{content: string, source: string,
   h3: ({ children }: React.HTMLAttributes<HTMLHeadingElement>) => (
     <h3 className="text-sm font-semibold text-foreground mt-2 mb-1">{children}</h3>
   ),
-  // Tables — scrollable wrapper + clean border styling
+  // Tables
   table: ({ children }: React.HTMLAttributes<HTMLTableElement>) => (
     <div className="overflow-x-auto my-2 rounded-lg border border-border">
       <table className="w-full text-xs border-collapse">{children}</table>
@@ -44,9 +44,7 @@ const getMarkdownComponents = (sources?: Array<{content: string, source: string,
     <thead className="bg-primary/10">{children}</thead>
   ),
   th: ({ children }: React.ThHTMLAttributes<HTMLTableCellElement>) => (
-    <th className="px-3 py-2 text-left font-semibold text-foreground border-b border-border">
-      {children}
-    </th>
+    <th className="px-3 py-2 text-left font-semibold text-foreground border-b border-border">{children}</th>
   ),
   td: ({ children }: React.TdHTMLAttributes<HTMLTableCellElement>) => (
     <td className="px-3 py-2 border-b border-border/50 text-card-foreground">{children}</td>
@@ -74,43 +72,44 @@ const getMarkdownComponents = (sources?: Array<{content: string, source: string,
   code: ({ children }: React.HTMLAttributes<HTMLElement>) => (
     <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>
   ),
-  // Paragraph spacing
+  // Paragraph with citation handling
   p: ({ children }: { children: React.ReactNode }) => {
+    // Guard: only process citations when the message has RAG sources attached
+    if (!sources || sources.length === 0) {
+      return <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>;
+    }
+    // Strict regex — only match [filename.pdf, p. X] or [filename.pdf, trang X] patterns
+    const citationRegex = /\[([^\]]+\.(?:pdf|PDF|epub|EPUB)[^\]]*)\]/gi;
     const processChild = (child: React.ReactNode): React.ReactNode => {
       if (typeof child === 'string') {
-        // Regex to match citations like [1.pdf, p. 12] or [sach.pdf, trang 5]
-        const parts = child.split(/(\[[\w\d.-]+(?:\.pdf)?,\s*(?:p\.|trang)\s*[\d.]+\])/gi);
-        return parts.map((part, i) => {
-          if (part.match(/\[[\w\d.-]+(?:\.pdf)?,\s*(?:p\.|trang)\s*[\d.]+\]/i)) {
-            const refText = part.replace(/[\[\]]/g, '');
-            // Find content for this citation from sources with robust matching
-            const sourceInfo = sources?.find(s => 
-              s.ref === part || 
-              s.ref.replace(/\s/g, '') === part.replace(/\s/g, '')
-            );
-            
-            return (
-              <VerifiedSourcePopup 
-                key={i} 
-                refText={refText} 
-                sourceInfo={sourceInfo} 
-              />
-            );
+        const parts = child.split(citationRegex);
+        const matches = child.match(citationRegex) || [];
+        const result: React.ReactNode[] = [];
+        parts.forEach((text, idx) => {
+          if (text) result.push(text);
+          if (idx < matches.length) {
+            const raw = matches[idx];
+            const subCitations = raw.replace(/^\[/, '').replace(/\]$/, '').split(/\s*;\s*/);
+            subCitations.forEach((sub, subIdx) => {
+              const refText = sub.trim();
+              const sourceInfo = sources?.find(s =>
+                s.ref.replace(/\s/g, '') === `[${refText}]`.replace(/\s/g, '') ||
+                s.ref === `[${refText}]`
+              );
+              result.push(
+                <VerifiedSourcePopup key={`c${idx}-${subIdx}`} refText={refText} sourceInfo={sourceInfo} />
+              );
+            });
           }
-          return part;
         });
+        return result;
       }
       return child;
     };
-
     return (
       <p className="mb-2 last:mb-0 leading-relaxed">
-        {Array.isArray(children) 
-          ? children.map((child, idx) => (
-              <span key={idx}>
-                {processChild(child)}
-              </span>
-            ))
+        {Array.isArray(children)
+          ? children.map((c, i) => <span key={i}>{processChild(c)}</span>)
           : processChild(children)}
       </p>
     );
@@ -120,6 +119,7 @@ const getMarkdownComponents = (sources?: Array<{content: string, source: string,
     <blockquote className="border-l-2 border-primary/40 pl-3 my-2 text-muted-foreground italic">{children}</blockquote>
   ),
 });
+
 
 const quickReplies = [
   "I'm feeling anxious",
@@ -214,7 +214,7 @@ export default function Chat() {
   const [userAvatar, setUserAvatar] = useState("🙂");
   const [showMoodModal, setShowMoodModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { chatMessages, addChatMessage, assessmentResult } = useAppStore();
+  const { chatMessages, addChatMessage, assessmentResult, setAssessmentResult } = useAppStore();
   const { showReassessment, nickname, dismiss: dismissReassessment } = useReassessment();
   const { user } = useAuth();
   const { speakingId, speak } = useTTS();
@@ -248,6 +248,29 @@ export default function Chat() {
     };
     load();
   }, [user]);
+
+  // Sync profile (PHQ-9 / GAD-7) from Supabase when store is empty after page reload
+  useEffect(() => {
+    if (!user || assessmentResult) return;
+    supabase
+      .from("profiles")
+      .select("phq9_score, phq9_severity, gad7_score, gad7_severity, baseline_level, primary_issue, realtime_status, realtime_confidence")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data || data.phq9_score == null) return;
+        setAssessmentResult({
+          phq9Score: data.phq9_score,
+          phq9Severity: (data.phq9_severity ?? "Normal") as SeverityLevel,
+          gad7Score: data.gad7_score ?? 0,
+          gad7Severity: (data.gad7_severity ?? "Normal") as SeverityLevel,
+          overallBaseline: (data.baseline_level ?? "Normal") as SeverityLevel,
+          primaryIssue: (data.primary_issue ?? "None") as PrimaryIssue,
+          realtimeStatus: data.realtime_status ?? undefined,
+          realtimeConfidence: data.realtime_confidence ?? undefined,
+        });
+      });
+  }, [user, assessmentResult]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!user) return;
@@ -328,6 +351,21 @@ export default function Chat() {
     try {
       const nlpLabel = classifyText(text);
 
+      // Derive realtime_status: priority = 1) NLP on current text, 2) today's mood, 3) stored assessment
+      const deriveMoodStatus = () => {
+        const latestMood = moodContext?.[0];
+        if (latestMood) {
+          const label  = (latestMood as any).label as string;
+          const stress = ((latestMood as any).stress_score as number) ?? 0;
+          if (label === "Anxious" || stress >= 8) return "Anxiety";
+          if (label === "Sad"     || label === "Low")  return "Depression";
+          if (label === "Stressed"|| stress >= 7) return "Stressed";
+          if (label === "Angry")                  return "Anger";
+        }
+        return assessmentResult?.realtimeStatus || "Normal";
+      };
+      const derivedRealtimeStatus = nlpLabel !== "Normal" ? nlpLabel : deriveMoodStatus();
+
       const res = await fetch("http://localhost:8000/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -338,7 +376,7 @@ export default function Chat() {
           baseline_issue: assessmentResult?.primaryIssue && assessmentResult.primaryIssue !== "None"
                          ? assessmentResult.primaryIssue
                          : "None",
-          realtime_status: nlpLabel !== "Normal" ? nlpLabel : (assessmentResult?.realtimeStatus || "Normal"),
+          realtime_status: derivedRealtimeStatus,
           history: chatMessages.map(msg => ({ role: msg.role, content: msg.content })),
           phq9_score: assessmentResult?.phq9Score ?? null,
           phq9_severity: assessmentResult?.phq9Severity ?? null,
@@ -463,6 +501,26 @@ export default function Chat() {
                             >
                               {msg.content}
                             </ReactMarkdown>
+
+                            {/* Verified Sources footer — always shown when sources exist */}
+                            {msg.sources && msg.sources.length > 0 && (
+                              <div className="mt-3 pt-2.5 border-t border-border/30">
+                                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                  <BookOpen className="h-3 w-3" />
+                                  Verified Sources ({msg.sources.length})
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {msg.sources.map((src, i) => (
+                                    <VerifiedSourcePopup
+                                      key={i}
+                                      refText={`${src.source}, ${src.page !== '?' ? `trang ${src.page}` : 'p. ?'}`}
+                                      sourceInfo={src}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
                             {/* TTS Speaker button */}
                             <div className="flex justify-end mt-2">
                               <button
@@ -606,17 +664,93 @@ export default function Chat() {
               ))}
             </div>
 
-            {assessmentResult && (
-              <div className="mt-6 bg-secondary rounded-xl p-4">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Your Profile</p>
-                <p className="text-sm font-medium text-secondary-foreground">
-                  {assessmentResult.overallBaseline} — {assessmentResult.primaryIssue}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  PHQ-9: {assessmentResult.phq9Score} · GAD-7: {assessmentResult.gad7Score}
-                </p>
-              </div>
-            )}
+            {/* Mental Status Panel */}
+            <div className="mt-6 space-y-3">
+              {assessmentResult ? (
+                <div className="bg-secondary rounded-xl p-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Clinical Profile</p>
+                  <div className="space-y-2">
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">PHQ-9 (Depression)</span>
+                        <span className="font-bold text-foreground">{assessmentResult.phq9Score}/27 · {assessmentResult.phq9Severity}</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-border rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${(assessmentResult.phq9Score / 27) * 100}%`, background: assessmentResult.phq9Score <= 4 ? "var(--primary)" : assessmentResult.phq9Score <= 9 ? "#f59e0b" : assessmentResult.phq9Score <= 14 ? "#f97316" : "#ef4444" }} />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">GAD-7 (Anxiety)</span>
+                        <span className="font-bold text-foreground">{assessmentResult.gad7Score}/21 · {assessmentResult.gad7Severity}</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-border rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${(assessmentResult.gad7Score / 21) * 100}%`, background: assessmentResult.gad7Score <= 4 ? "var(--primary)" : assessmentResult.gad7Score <= 9 ? "#f59e0b" : assessmentResult.gad7Score <= 14 ? "#f97316" : "#ef4444" }} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-border/40 flex justify-between text-xs">
+                    <span className="text-muted-foreground">Overall</span>
+                    <span className="font-bold">{assessmentResult.overallBaseline} · {assessmentResult.primaryIssue === "None" ? "—" : assessmentResult.primaryIssue}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-secondary rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground">No assessment yet. <a href="/screening" className="text-primary hover:underline">Take screening →</a></p>
+                </div>
+              )}
+
+              {/* Today's Mood */}
+              {moodContext?.[0] && (
+                <div className="bg-secondary rounded-xl p-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Today's Mood</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{(moodContext[0] as any).emoji}</span>
+                    <div>
+                      <p className="text-sm font-medium text-secondary-foreground">{(moodContext[0] as any).label}</p>
+                      {(moodContext[0] as any).stress_score != null && (
+                        <p className="text-xs text-muted-foreground">Stress {(moodContext[0] as any).stress_score}/10</p>
+                      )}
+                    </div>
+                  </div>
+                  {(moodContext[0] as any).note && (
+                    <p className="text-xs text-muted-foreground mt-2 italic">"{(moodContext[0] as any).note}"</p>
+                  )}
+                </div>
+              )}
+
+              {/* AI Sentiment (realtime_status) */}
+              {assessmentResult?.realtimeStatus && assessmentResult.realtimeStatus !== "Normal" && (
+                <div className="bg-secondary rounded-xl p-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">AI Perception</p>
+                  <div className="flex items-center gap-2">
+                    <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+                      assessmentResult.realtimeStatus === "Suicidal"  ? "bg-red-500 animate-pulse" :
+                      assessmentResult.realtimeStatus === "Depression" ? "bg-orange-400" :
+                      assessmentResult.realtimeStatus === "Anxiety"   ? "bg-yellow-400" :
+                      "bg-primary"
+                    }`} />
+                    <div>
+                      <p className="text-sm font-semibold text-secondary-foreground">
+                        {assessmentResult.realtimeStatus === "Suicidal"   ? "⚠️ Crisis Risk Detected" :
+                         assessmentResult.realtimeStatus === "Depression" ? "Depressive Pattern" :
+                         assessmentResult.realtimeStatus === "Anxiety"    ? "Anxiety Pattern" :
+                         assessmentResult.realtimeStatus}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">Sent to AI · shapes response tone</p>
+                    </div>
+                  </div>
+                  {assessmentResult.realtimeConfidence != null && (
+                    <div className="mt-2">
+                      <div className="h-1 w-full bg-border rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full" style={{ width: `${assessmentResult.realtimeConfidence * 100}%` }} />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 text-right">{(assessmentResult.realtimeConfidence * 100).toFixed(0)}% confidence</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </aside>
         </div>
 
