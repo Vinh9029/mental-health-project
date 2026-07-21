@@ -39,8 +39,8 @@ async def analyze_followup_sentiment(request: SentimentRequest) -> SentimentResp
     if not request.text_responses:
         raise HTTPException(status_code=400, detail="text_responses cannot be empty")
     
-    if len(request.text_responses) != 3:
-        raise HTTPException(status_code=400, detail="Must provide exactly 3 text responses")
+    if not (1 <= len(request.text_responses) <= 3):
+        raise HTTPException(status_code=400, detail="Must provide between 1 and 3 text responses")
     
     try:
         # Analyze sentiment — pass questions for Q+A-pair enriched input

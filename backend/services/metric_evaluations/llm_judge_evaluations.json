@@ -1,0 +1,887 @@
+[
+  {
+    "sample_id": 1,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 3,
+      "lstm_score": 9,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 2,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 1,
+      "lstm_score": 9,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 3,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 6,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "High",
+    "linguistic_features": [
+      "suicidal ideation",
+      "masking behavior"
+    ],
+    "missed_risk_severity": 10,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 4,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 6,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "High",
+    "linguistic_features": [
+      "suicidal ideation",
+      "emotional numbness"
+    ],
+    "missed_risk_severity": 8,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 5,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 3,
+      "lstm_score": 3,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 8,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 6,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 1,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "suicidal ideation"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 7,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 3,
+      "lstm_score": 6,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "anxiety language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 8,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 3,
+      "lstm_score": 3,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "emotional numbness"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 9,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 3,
+      "lstm_score": 9,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 10,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 9,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 11,
+    "ground_truth": "suicidal",
+    "clinical_accuracy": {
+      "svm_score": 4,
+      "lstm_score": 4,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "High",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 8,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text reflects clinically significant suicide risk and emotional exhaustion. Expressions of hopelessness and self-harm ideation would warrant immediate clinical attention.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 12,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 9,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 13,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 6,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "suicidal ideation"
+    ],
+    "missed_risk_severity": 10,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 14,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 1,
+      "lstm_score": 3,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 15,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 1,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "emotional numbness"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 16,
+    "ground_truth": "suicidal",
+    "clinical_accuracy": {
+      "svm_score": 4,
+      "lstm_score": 4,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "anxiety language"
+    ],
+    "missed_risk_severity": 8,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text reflects clinically significant suicide risk and emotional exhaustion. Expressions of hopelessness and self-harm ideation would warrant immediate clinical attention.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 17,
+    "ground_truth": "personality disorder",
+    "clinical_accuracy": {
+      "svm_score": 1,
+      "lstm_score": 3,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The post reflects identity instability, avoidance patterns, and diagnostic self-processing commonly seen in personality pathology. The tone is help-seeking rather than acutely dangerous.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 18,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 1,
+      "lstm_score": 9,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "anxiety language"
+    ],
+    "missed_risk_severity": 8,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 19,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 6,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "suicidal ideation"
+    ],
+    "missed_risk_severity": 10,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 20,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 9,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 21,
+    "ground_truth": "suicidal",
+    "clinical_accuracy": {
+      "svm_score": 1,
+      "lstm_score": 9,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text reflects clinically significant suicide risk and emotional exhaustion. Expressions of hopelessness and self-harm ideation would warrant immediate clinical attention.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 22,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 9,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 23,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 9,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "suicidal ideation",
+      "emotional numbness"
+    ],
+    "missed_risk_severity": 10,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 24,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 9,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 8,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 25,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 6,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "High",
+    "linguistic_features": [
+      "suicidal ideation",
+      "emotional numbness"
+    ],
+    "missed_risk_severity": 10,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 26,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 3,
+      "lstm_score": 3,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 27,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 6,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "High",
+    "linguistic_features": [
+      "suicidal ideation",
+      "emotional numbness"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 28,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 1,
+      "lstm_score": 1,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 29,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 6,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "High",
+    "linguistic_features": [
+      "suicidal ideation",
+      "metaphorical language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 30,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 6,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "suicidal ideation"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 31,
+    "ground_truth": "suicidal",
+    "clinical_accuracy": {
+      "svm_score": 4,
+      "lstm_score": 4,
+      "bert_score": 4
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "emotional numbness"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "All three models struggled because the text blends chronic depressive symptoms with explicit self-harm or existential language. The models appeared to prioritize surface emotional tone over clinically distinguishing imminent suicide risk from depressive cognition.",
+    "clinical_insight": "The text reflects clinically significant suicide risk and emotional exhaustion. Expressions of hopelessness and self-harm ideation would warrant immediate clinical attention.",
+    "verdict": "None of the models were fully reliable for this sample because the text contains overlapping depressive and suicidal indicators that created clinical ambiguity."
+  },
+  {
+    "sample_id": 32,
+    "ground_truth": "suicidal",
+    "clinical_accuracy": {
+      "svm_score": 4,
+      "lstm_score": 4,
+      "bert_score": 1
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "suicidal ideation"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "All three models struggled because the text blends chronic depressive symptoms with explicit self-harm or existential language. The models appeared to prioritize surface emotional tone over clinically distinguishing imminent suicide risk from depressive cognition.",
+    "clinical_insight": "The text reflects clinically significant suicide risk and emotional exhaustion. Expressions of hopelessness and self-harm ideation would warrant immediate clinical attention.",
+    "verdict": "None of the models were fully reliable for this sample because the text contains overlapping depressive and suicidal indicators that created clinical ambiguity."
+  },
+  {
+    "sample_id": 33,
+    "ground_truth": "suicidal",
+    "clinical_accuracy": {
+      "svm_score": 4,
+      "lstm_score": 4,
+      "bert_score": 4
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "All three models struggled because the text blends chronic depressive symptoms with explicit self-harm or existential language. The models appeared to prioritize surface emotional tone over clinically distinguishing imminent suicide risk from depressive cognition.",
+    "clinical_insight": "The text reflects clinically significant suicide risk and emotional exhaustion. Expressions of hopelessness and self-harm ideation would warrant immediate clinical attention.",
+    "verdict": "None of the models were fully reliable for this sample because the text contains overlapping depressive and suicidal indicators that created clinical ambiguity."
+  },
+  {
+    "sample_id": 34,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 6,
+      "bert_score": 6
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "suicidal ideation"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "All three models struggled because the text blends chronic depressive symptoms with explicit self-harm or existential language. The models appeared to prioritize surface emotional tone over clinically distinguishing imminent suicide risk from depressive cognition.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "None of the models were fully reliable for this sample because the text contains overlapping depressive and suicidal indicators that created clinical ambiguity."
+  },
+  {
+    "sample_id": 35,
+    "ground_truth": "stress",
+    "clinical_accuracy": {
+      "svm_score": 3,
+      "lstm_score": 3,
+      "bert_score": 3
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "All three models struggled because the text blends chronic depressive symptoms with explicit self-harm or existential language. The models appeared to prioritize surface emotional tone over clinically distinguishing imminent suicide risk from depressive cognition.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "None of the models were fully reliable for this sample because the text contains overlapping depressive and suicidal indicators that created clinical ambiguity."
+  },
+  {
+    "sample_id": 36,
+    "ground_truth": "stress",
+    "clinical_accuracy": {
+      "svm_score": 3,
+      "lstm_score": 3,
+      "bert_score": 3
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "anxiety language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "All three models struggled because the text blends chronic depressive symptoms with explicit self-harm or existential language. The models appeared to prioritize surface emotional tone over clinically distinguishing imminent suicide risk from depressive cognition.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "None of the models were fully reliable for this sample because the text contains overlapping depressive and suicidal indicators that created clinical ambiguity."
+  },
+  {
+    "sample_id": 37,
+    "ground_truth": "suicidal",
+    "clinical_accuracy": {
+      "svm_score": 1,
+      "lstm_score": 1,
+      "bert_score": 1
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "All three models struggled because the text blends chronic depressive symptoms with explicit self-harm or existential language. The models appeared to prioritize surface emotional tone over clinically distinguishing imminent suicide risk from depressive cognition.",
+    "clinical_insight": "The text reflects clinically significant suicide risk and emotional exhaustion. Expressions of hopelessness and self-harm ideation would warrant immediate clinical attention.",
+    "verdict": "None of the models were fully reliable for this sample because the text contains overlapping depressive and suicidal indicators that created clinical ambiguity."
+  },
+  {
+    "sample_id": 38,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 6,
+      "bert_score": 1
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "All three models struggled because the text blends chronic depressive symptoms with explicit self-harm or existential language. The models appeared to prioritize surface emotional tone over clinically distinguishing imminent suicide risk from depressive cognition.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "None of the models were fully reliable for this sample because the text contains overlapping depressive and suicidal indicators that created clinical ambiguity."
+  },
+  {
+    "sample_id": 39,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 6,
+      "bert_score": 6
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "suicidal ideation"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "All three models struggled because the text blends chronic depressive symptoms with explicit self-harm or existential language. The models appeared to prioritize surface emotional tone over clinically distinguishing imminent suicide risk from depressive cognition.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "None of the models were fully reliable for this sample because the text contains overlapping depressive and suicidal indicators that created clinical ambiguity."
+  },
+  {
+    "sample_id": 40,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 6,
+      "lstm_score": 6,
+      "bert_score": 6
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "All three models struggled because the text blends chronic depressive symptoms with explicit self-harm or existential language. The models appeared to prioritize surface emotional tone over clinically distinguishing imminent suicide risk from depressive cognition.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "None of the models were fully reliable for this sample because the text contains overlapping depressive and suicidal indicators that created clinical ambiguity."
+  },
+  {
+    "sample_id": 41,
+    "ground_truth": "suicidal",
+    "clinical_accuracy": {
+      "svm_score": 4,
+      "lstm_score": 4,
+      "bert_score": 4
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "suicidal ideation",
+      "emotional numbness"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "All three models struggled because the text blends chronic depressive symptoms with explicit self-harm or existential language. The models appeared to prioritize surface emotional tone over clinically distinguishing imminent suicide risk from depressive cognition.",
+    "clinical_insight": "The text reflects clinically significant suicide risk and emotional exhaustion. Expressions of hopelessness and self-harm ideation would warrant immediate clinical attention.",
+    "verdict": "None of the models were fully reliable for this sample because the text contains overlapping depressive and suicidal indicators that created clinical ambiguity."
+  },
+  {
+    "sample_id": 42,
+    "ground_truth": "suicidal",
+    "clinical_accuracy": {
+      "svm_score": 4,
+      "lstm_score": 4,
+      "bert_score": 1
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "All three models struggled because the text blends chronic depressive symptoms with explicit self-harm or existential language. The models appeared to prioritize surface emotional tone over clinically distinguishing imminent suicide risk from depressive cognition.",
+    "clinical_insight": "The text reflects clinically significant suicide risk and emotional exhaustion. Expressions of hopelessness and self-harm ideation would warrant immediate clinical attention.",
+    "verdict": "None of the models were fully reliable for this sample because the text contains overlapping depressive and suicidal indicators that created clinical ambiguity."
+  },
+  {
+    "sample_id": 43,
+    "ground_truth": "suicidal",
+    "clinical_accuracy": {
+      "svm_score": 1,
+      "lstm_score": 1,
+      "bert_score": 9
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "SVM likely over-weighted isolated keywords such as 'suicide', 'panic', or medication references without understanding broader emotional context. BERT captured the longitudinal depressive themes, contextual qualifiers, and nuanced intent more accurately.",
+    "clinical_insight": "The text reflects clinically significant suicide risk and emotional exhaustion. Expressions of hopelessness and self-harm ideation would warrant immediate clinical attention.",
+    "verdict": "BERT is the most reliable model for this sample because it correctly interpreted contextual emotional meaning instead of reacting only to high-risk keywords."
+  },
+  {
+    "sample_id": 44,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 3,
+      "lstm_score": 3,
+      "bert_score": 3
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "All three models struggled because the text blends chronic depressive symptoms with explicit self-harm or existential language. The models appeared to prioritize surface emotional tone over clinically distinguishing imminent suicide risk from depressive cognition.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "None of the models were fully reliable for this sample because the text contains overlapping depressive and suicidal indicators that created clinical ambiguity."
+  },
+  {
+    "sample_id": 45,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 3,
+      "lstm_score": 6,
+      "bert_score": 1
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "emotional numbness"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "All three models struggled because the text blends chronic depressive symptoms with explicit self-harm or existential language. The models appeared to prioritize surface emotional tone over clinically distinguishing imminent suicide risk from depressive cognition.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "None of the models were fully reliable for this sample because the text contains overlapping depressive and suicidal indicators that created clinical ambiguity."
+  },
+  {
+    "sample_id": 46,
+    "ground_truth": "suicidal",
+    "clinical_accuracy": {
+      "svm_score": 4,
+      "lstm_score": 4,
+      "bert_score": 4
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "suicidal ideation",
+      "anxiety language"
+    ],
+    "missed_risk_severity": 10,
+    "model_reasoning": "All three models struggled because the text blends chronic depressive symptoms with explicit self-harm or existential language. The models appeared to prioritize surface emotional tone over clinically distinguishing imminent suicide risk from depressive cognition.",
+    "clinical_insight": "The text reflects clinically significant suicide risk and emotional exhaustion. Expressions of hopelessness and self-harm ideation would warrant immediate clinical attention.",
+    "verdict": "None of the models were fully reliable for this sample because the text contains overlapping depressive and suicidal indicators that created clinical ambiguity."
+  },
+  {
+    "sample_id": 47,
+    "ground_truth": "suicidal",
+    "clinical_accuracy": {
+      "svm_score": 9,
+      "lstm_score": 9,
+      "bert_score": 4
+    },
+    "linguistic_complexity": "Medium",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "The neural models benefited from contextual semantic understanding, while SVM relied more heavily on sparse lexical cues. BERT generally handled ambiguity, indirect phrasing, and emotionally layered narratives more effectively.",
+    "clinical_insight": "The text reflects clinically significant suicide risk and emotional exhaustion. Expressions of hopelessness and self-harm ideation would warrant immediate clinical attention.",
+    "verdict": "Bi-LSTM is the most reliable model here because it captured sequential emotional context better than the keyword-driven alternatives."
+  },
+  {
+    "sample_id": 48,
+    "ground_truth": "personality disorder",
+    "clinical_accuracy": {
+      "svm_score": 9,
+      "lstm_score": 9,
+      "bert_score": 3
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "The neural models benefited from contextual semantic understanding, while SVM relied more heavily on sparse lexical cues. BERT generally handled ambiguity, indirect phrasing, and emotionally layered narratives more effectively.",
+    "clinical_insight": "The post reflects identity instability, avoidance patterns, and diagnostic self-processing commonly seen in personality pathology. The tone is help-seeking rather than acutely dangerous.",
+    "verdict": "Bi-LSTM is the most reliable model here because it captured sequential emotional context better than the keyword-driven alternatives."
+  },
+  {
+    "sample_id": 49,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 1,
+      "lstm_score": 9,
+      "bert_score": 1
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "The neural models benefited from contextual semantic understanding, while SVM relied more heavily on sparse lexical cues. BERT generally handled ambiguity, indirect phrasing, and emotionally layered narratives more effectively.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "Bi-LSTM is the most reliable model here because it captured sequential emotional context better than the keyword-driven alternatives."
+  },
+  {
+    "sample_id": 50,
+    "ground_truth": "depression",
+    "clinical_accuracy": {
+      "svm_score": 9,
+      "lstm_score": 9,
+      "bert_score": 1
+    },
+    "linguistic_complexity": "Low",
+    "linguistic_features": [
+      "direct emotional disclosure",
+      "informal language"
+    ],
+    "missed_risk_severity": 5,
+    "model_reasoning": "The neural models benefited from contextual semantic understanding, while SVM relied more heavily on sparse lexical cues. BERT generally handled ambiguity, indirect phrasing, and emotionally layered narratives more effectively.",
+    "clinical_insight": "The text demonstrates persistent depressive cognition, hopelessness, low motivation, and emotional dysregulation. Although suicidal themes may appear, the dominant presentation is depressive suffering rather than immediate intent.",
+    "verdict": "Bi-LSTM is the most reliable model here because it captured sequential emotional context better than the keyword-driven alternatives."
+  }
+]

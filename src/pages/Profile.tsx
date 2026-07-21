@@ -47,12 +47,12 @@ export default function Profile() {
   useEffect(() => {
     const fa = (location.state as any)?.freshAssessment;
     if (!fa) return;
-    if (fa.phq9Score    != null) setPhq9Score(fa.phq9Score);
-    if (fa.gad7Score    != null) setGad7Score(fa.gad7Score);
-    if (fa.phq9Severity)         setPhq9Severity(fa.phq9Severity);
-    if (fa.gad7Severity)         setGad7Severity(fa.gad7Severity);
-    if (fa.overallBaseline)      setBaselineLevel(fa.overallBaseline);
-    if (fa.primaryIssue)         setPrimaryIssue(fa.primaryIssue);
+    if (fa.phq9Score != null) setPhq9Score(fa.phq9Score);
+    if (fa.gad7Score != null) setGad7Score(fa.gad7Score);
+    if (fa.phq9Severity) setPhq9Severity(fa.phq9Severity);
+    if (fa.gad7Severity) setGad7Severity(fa.gad7Severity);
+    if (fa.overallBaseline) setBaselineLevel(fa.overallBaseline);
+    if (fa.primaryIssue) setPrimaryIssue(fa.primaryIssue);
     // realtimeStatus may be undefined if user skipped all text answers
     setRealtimeStatus(fa.realtimeStatus ?? null);
     setRealtimeConfidence(fa.realtimeConfidence ?? null);
@@ -126,9 +126,9 @@ export default function Profile() {
     const { error } = await supabase
       .from("profiles")
       .update({
-      display_name: nickname,
-      nickname: nickname,
-      avatar_url: selectedAvatar,
+        display_name: nickname,
+        nickname: nickname,
+        avatar_url: selectedAvatar,
       } as any)
       .eq("user_id", user.id);
 
@@ -187,11 +187,10 @@ export default function Profile() {
                 <button
                   key={av.id}
                   onClick={() => setSelectedAvatar(av.id)}
-                  className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all ${
-                    selectedAvatar === av.id
-                      ? "border-primary bg-primary/5 scale-105"
-                      : "border-border hover:border-primary/40"
-                  }`}
+                  className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all ${selectedAvatar === av.id
+                    ? "border-primary bg-primary/5 scale-105"
+                    : "border-border hover:border-primary/40"
+                    }`}
                 >
                   <span className="text-3xl">{av.emoji}</span>
                   <span className="text-xs text-muted-foreground">{av.label}</span>
@@ -320,7 +319,7 @@ export default function Profile() {
               {/* Passive Real-time */}
               <div className="border border-border rounded-xl p-4 bg-background">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center justify-between">
-                  <span>AI Sentiment Analysis</span>
+                  <span>AI Mental Health Detection</span>
                   <span className="bg-secondary px-2 py-0.5 rounded-full text-[10px]">BERT NLP</span>
                 </p>
                 {realtimeStatus ? (
@@ -373,7 +372,7 @@ export default function Profile() {
             className="bg-card rounded-2xl p-6 card-elevated"
           >
             <div className="flex items-center gap-2 mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
               <h2 className="font-heading text-lg font-semibold text-card-foreground">Progress Over Time</h2>
             </div>
             <p className="text-xs text-muted-foreground mb-4">Your PHQ-9 and GAD-7 scores from each assessment. Lower scores indicate improvement.</p>

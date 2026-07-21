@@ -655,15 +655,40 @@ class BertSentimentAnalyzer:
         }
 
 
-# Global analyzer instance
-_analyzer = None
+# ── Singleton + thread-safety ────────────────────────────────────────────────
+import threading
 
-def get_analyzer() -> BertSentimentAnalyzer:
-    """Get or create global analyzer instance"""
+_analyzer: "BertSentimentAnalyzer | None" = None
+_analyzer_lock = threading.Lock()
+
+
+def get_analyzer() -> "BertSentimentAnalyzer":
+    """
+    Return the process-wide singleton BertSentimentAnalyzer.
+    Thread-safe: uses a Lock so concurrent requests on startup
+    cannot create two instances (and load BERT twice).
+    """
     global _analyzer
-    if _analyzer is None:
-        _analyzer = BertSentimentAnalyzer()
+    if _analyzer is None:               # fast path (no lock overhead after init)
+        with _analyzer_lock:
+            if _analyzer is None:       # double-checked locking
+                _analyzer = BertSentimentAnalyzer()
     return _analyzer
+
+
+def warm_up() -> None:
+    """
+    Pre-load BERT model + NLTK resources at server startup.
+
+    Call this from the FastAPI lifespan / startup event so the
+    first real user request is not delayed by model loading (~5-30s).
+    """
+    print("[BERT] Warming up — loading model and NLTK resources...")
+    analyzer = get_analyzer()
+    analyzer.load_model()          # loads BERT weights from disk
+    analyzer._load_nltk()          # downloads / caches NLTK corpora
+    print("[BERT] Warm-up complete — model ready.")
+
 
 def analyze_sentiment(
     text_responses: List[str],

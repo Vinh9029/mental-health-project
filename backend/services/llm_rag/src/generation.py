@@ -243,7 +243,23 @@ class ResponseGenerator:
             print(f"\n[RAG] ({query_type}) Retrieved {len(docs)} documents for: '{expanded_query[:50]}...'")
             
             rag_context_list = []
+            _seen_content_hashes: set = set()   # de-duplication guard
+            MAX_CONTEXT_CHARS = 6000             # prevent prompt overflow → LLM looping
+            _total_chars = 0
+
             for i, doc in enumerate(docs):
+                # ── De-duplicate by content fingerprint ──────────────────────
+                _content_hash = hash(doc.page_content.strip()[:300])
+                if _content_hash in _seen_content_hashes:
+                    print(f"  [SKIP] Duplicate chunk detected at position {i+1}, skipping.")
+                    continue
+                _seen_content_hashes.add(_content_hash)
+
+                # ── Hard cap on total context length ─────────────────────────
+                if _total_chars >= MAX_CONTEXT_CHARS:
+                    print(f"  [SKIP] Context limit ({MAX_CONTEXT_CHARS} chars) reached at chunk {i+1}.")
+                    break
+
                 source_raw = doc.metadata.get('source', 'CBT Document')
                 import os
                 source_name = os.path.basename(source_raw)
@@ -258,11 +274,16 @@ class ResponseGenerator:
                 page_label = "trang" if is_vietnamese else "p."
                 ref_label = f"[{source_name}, {page_label} {page}]"
                 
-                print(f"  {i+1}. {ref_label} {doc.page_content[:150]}...")
-                rag_context_list.append(f"REFERENCE {ref_label}:\n{doc.page_content}")
+                # Truncate individual chunk to avoid single-doc dominance
+                chunk_text = doc.page_content[:1500]
+                entry = f"REFERENCE {ref_label}:\n{chunk_text}"
+                _total_chars += len(entry)
+
+                print(f"  {i+1}. {ref_label} {chunk_text[:150]}...")
+                rag_context_list.append(entry)
                 
                 sources_for_frontend.append({
-                    "content": doc.page_content,
+                    "content": chunk_text,
                     "source": source_name,
                     "page": page,
                     "ref": ref_label
@@ -430,6 +451,8 @@ class ResponseGenerator:
                     "Bạn là MindCare AI — trợ lý sức khỏe tâm thần chuyên sâu, thấu cảm.\n\n"
                     "QUY TẮC QUAN TRỌNG:\n"
                     "- Trả lời ấm áp, đa dạng câu mở đầu — KHÔNG lặp lại khuôn mẫu.\n"
+                    "- CHỐNG LẶP LẠI (CRITICAL): Mỗi điểm/ý chỉ được đề cập MỘT LẦN duy nhất trong toàn bộ câu trả lời.\n"
+                    "  TUYỆT ĐỐI KHÔNG lặp lại cùng một tiêu đề, gạch đầu dòng, hoặc đoạn văn trong câu trả lời.\n"
                     "- GROUNDING BẮT BUỘC: Câu trả lời PHẢI dựa trực tiếp vào DỮ LIỆU THAM KHẢO bên dưới.\n"
                     "  Nếu tài liệu có đề cập đến chủ đề → tổng hợp và giải thích từ tài liệu đó.\n"
                     "  Nếu tài liệu KHÔNG liên quan → thừa nhận và trả lời từ kiến thức tổng quát.\n"
@@ -489,6 +512,8 @@ class ResponseGenerator:
                 system_prompt = (
                     "You are MindCare AI — a compassionate mental health assistant.\n\n"
                     "CRITICAL RULES:\n"
+                    "- NO REPETITION (CRITICAL): Every point or idea must appear EXACTLY ONCE in your response.\n"
+                    "  NEVER repeat the same heading, bullet point, or paragraph anywhere in your answer.\n"
                     "- GROUNDING: Your response MUST be directly based on the REFERENCE DATA below.\n"
                     "  If the references address the topic → synthesize and explain from them.\n"
                     "  If the references are NOT relevant → acknowledge this and use general knowledge.\n"

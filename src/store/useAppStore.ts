@@ -36,6 +36,8 @@ interface AppState {
   setAssessmentResult: (result: AssessmentResult) => void;
   addChatMessage: (msg: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
   clearChat: () => void;
+  /** Call on logout — wipes all user-specific data from store + localStorage */
+  clearUserData: () => void;
 }
 
 function getSeverity(score: number): SeverityLevel {
@@ -81,6 +83,11 @@ export const useAppStore = create<AppState>()(
           ],
         })),
       clearChat: () => set({ chatMessages: [] }),
+      clearUserData: () => {
+        set({ assessmentResult: null, chatMessages: [] });
+        // Also wipe the persisted localStorage entry so the next user starts fresh
+        try { localStorage.removeItem('mindbloom-app-state'); } catch (_) { /* ignore */ }
+      },
     }),
     {
       name: 'mindbloom-app-state',

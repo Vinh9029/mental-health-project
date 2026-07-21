@@ -440,7 +440,17 @@ export default function FollowUp() {
                         next[currentIndex] = e.target.value;
                         setTextAnswers(next);
                       }}
-                      placeholder="Type your response here..."
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          if (currentIndex === 2) {
+                            submit();
+                          } else {
+                            setCurrentIndex((i) => i + 1);
+                          }
+                        }
+                      }}
+                      placeholder="Type your response here…  (Enter to continue · Shift+Enter for new line)"
                       className="w-full min-h-[140px] p-4 rounded-2xl border-2 border-border bg-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none resize-none transition-colors text-sm leading-relaxed"
                       autoFocus
                     />

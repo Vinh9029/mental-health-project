@@ -1,0 +1,1930 @@
+You are an expert clinical psychologist and NLP evaluation specialist.
+Your task is to assess mental health text classification predictions made by three AI models
+(SVM, Bi-LSTM, BERT) and provide structured, evidence-based evaluations.
+
+You will evaluate each sample on four dimensions:
+1. **Clinical Accuracy** (0–10): Does the predicted label reflect the clinical/psychological meaning of the text?
+2. **Linguistic Complexity** (Low/Medium/High): Does the text use metaphors, sarcasm, euphemisms, or indirect language?
+3. **Missed Risk Signals** (0–10): How severe would the consequences be if a real system made this error?
+4. **Model Reasoning Analysis**: Why do you think SVM failed but BERT succeeded (or all three failed)?
+
+Always respond in the exact JSON schema provided.
+
+---
+
+You will now evaluate 50 mental health text classification samples.
+The 7 possible labels are: `anxiety`, `bipolar`, `depression`, `normal`, `personality disorder`, `stress`, `suicidal`.
+
+For each sample, respond with a JSON object following the schema shown in the first sample.
+Wrap ALL responses in a top-level JSON array like:
+```json
+[
+  { ... sample 1 ... },
+  { ... sample 2 ... },
+  ...
+]
+```
+
+---
+## Sample #1
+
+**Text to evaluate:**
+"so i have been on effexor 75mg er for about 3 years and recently my doctor decided to change it to wellbutrin. i ended up taking 32.5mg for about 2 weeks to ween off it but as soon as i stopped the withdrawals started beating my ass. i am currently on day 4 without it and its unbearable. the physical symptoms are horrible i have brain zaps throughout my whole body and i cannot even stand up. not even going to go into the emotional symptoms. just wondering if anyone has gone through this and has any advice because this shit sucks effexor withdrawls"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `bipolar` | ❌ |
+| Bi-LSTM | `depression` | ✅ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 1,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #2
+
+**Text to evaluate:**
+"youbaviandecru aaaaah oui d accord je me demandais pour combien de temp je partais en d pression merci toi"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `normal` | ❌ |
+| Bi-LSTM | `depression` | ✅ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 2,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #3
+
+**Text to evaluate:**
+"i have been struggling mentally for a while now, it actually got a bit better for some time, but i am now at my lowest. i sleep more than 10 hours each day because living in my dreams is much simpler, once i wake up and remember who i am and the state of my life, i get this dreadful feeling and can burst into tears, which also happens during the day.while i have a lot of responsibilities and stuff that i need to do, i just mindlessly browse the internet for literally the whole day and cannot get myself to do tasks i need to do, which are tasks that do not excite me whatsoever, this had led me to fail again and again in college, for which my parents are paying for and it makes me feel bad for them. but they would not understand if i talk to them honestly due to the culture i live in, they probably do not believe mental issues are real and would look down on me for opening up. they keep comparing me to my peers who are getting married and finding good jobs, which is making the whole situation worse for me. i am envious of those people who are able to keep their life in check when dealing with those things, and i despise myself for how lazy i am, i keep starting each year saying this; this year i am going to put in the work for real, and i get lost somewhere along the way and nearly at the end i think to myself where did it all go wrong? i still had hope because i am young and always thought to myself that yeah life sucks now but it will get better at some point, i guess it partially did some issues like self-image, but i was never consistently happy, i probably need to accept that this is something that is going to stay with me as long as i live.no one knows about my struggles, i put on "everything is normal" mask socially. with family, i am quite loved, i joke around a lot and bring good energy i think. and so i would never kill myself because i know how many this would hurt. i do not want to die either, but sometimes i wish i was never born and do have moments of suicidal ideation which is draining.having no one to talk to about this for years now has begun to become physically painful, so this is my attempt to potentially relieve a bit of the pain. i know i should probably seek professional help, but honestly, i probably will not. nobody to talk to and it hurts."
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `suicidal` | ❌ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 3,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #4
+
+**Text to evaluate:**
+"tagged nsfw tw mention of suicidal ideation and suicide attempt the idea of suicide is comforting it is all that i ve known the idea of ending the constant misery i feel is weirdly enough the only thing stopping me from doing it besides a select number of friend a it truly is comfortable to me to be sitting in the cesspool of apathy and hatred for myself i feel every day usually when i m depressed i feel the apathy and it slowly just turn to numbness but something is different this time around do you ever feel almost the thrill of suicide or rather do you ever almost feel excitement when you re done grieving what your life could would have been lately i ve felt at peace over my self grieving and i do not like that a i have been desperately trying to stay afloat and the tiny push i would usually give myself to ground myself is gone i ve only ever felt this rush when i attempted and the aftermath destroys me every single time this feeling is almost like some time of euphoric high that i cant stop chasing i hate my life and i hate feeling like this but aren t some people meant to be dished the worst card to balance out nature"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `suicidal` | ❌ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 4,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #5
+
+**Text to evaluate:**
+"benzos stopping suicidal thoughts? so i’m having a severe episode and been having heavy suicidal thoughts and ideation. i’ve been prescribed wellbutrin and lorazepam. i have noticed that the lorazepam even in the smallest dose stops the suicidal thoughts. anyone can explain why that is?"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `bipolar` | ❌ |
+| Bi-LSTM | `bipolar` | ❌ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 5,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #6
+
+**Text to evaluate:**
+"last year i went into a relationship, i do not really trust anyone to heart too fast so it took a long time to trust. and when i did trust her she dumped me... i felt horrible and she never gave an answer why she dumped me. i recently met this girl and she was so sweet and caring so i trusted her too fast with my heart... she cheated in front of me with no mercy at all. this happened yesterday and i am just feeling that lifes not worth it anymore... i have been bullied for a long time and i have big insecurities, should i really live any more?// a teen male relationships and suicide thoughts."
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `normal` | ❌ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 6,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #7
+
+**Text to evaluate:**
+"so i just had a mental breakdown, after a lot of stress and pain. i know this will not last but i feel much better having a mental breakdown really helps sometimes."
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `stress` | ❌ |
+| Bi-LSTM | `suicidal` | ❌ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 7,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #8
+
+**Text to evaluate:**
+"i have previously been diagnosed with adhd and dysthymia by a psychiatrist. i was on prozac for 2 years from 2017 to 2019, and was prescribed concerta and brintellix this year. i had a relapse of mdd in dec 2020- from then till now i have lost 8kg (17lb), i lost all interest in my work and engaging with people. this improved for 2 weeks when i started brintellix in june, where i had a lot of energy and motivation, i woke up earlier etc, but now it is starting to go back to being dark and negative and just being down in general. i am also going for therapy with a psychologist. i am just wondering if i have bipolar type ii or something, or if this is normal? it is really affecting my work and relationships and i feel so guilty for being so negative and disengaged and hopeless yet again. felt energetic on britellix for awhile but depression fog has come back"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `bipolar` | ❌ |
+| Bi-LSTM | `bipolar` | ❌ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 8,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #9
+
+**Text to evaluate:**
+"i have my own share of depressive episodes periodically, and somedays, like right now, i fight every, single, day to keep it at bay. my best friend is going through a terrible depressive episode, and honestly i have forgotten how to even be there someone. i just have lost so many parts of me, i do not know anymore. everyone, anyone reading this, please tell me, what really helps? how can i be there for them? it hurts to see them hurting, but i do not know what to do. what works for you, as people who hurt too? how do you help? i know it is different for everyone, but i just want to feel like i can be there for someone, or at least try. how to be there for someone?"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `bipolar` | ❌ |
+| Bi-LSTM | `depression` | ✅ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 9,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #10
+
+**Text to evaluate:**
+"i feel like it is just over when i failed university, what do i even do now. apply to another one? like my parents had said but from them, it feels more like the degree worth more than whatever is there to do. i do not know, i feel like my scope of the world just constantly shrinking and i want to just end it. i am useless. "you are young so have more energy" does not apply to me, i feel like i am mentally had given up on myself long time ago. cannot do anything well, well enough"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `depression` | ✅ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 10,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #11
+
+**Text to evaluate:**
+"tw- sexual assualti sad my friend and i feel absolutely disgusting, i am not asking for absolution nor does my pov and context of the situation excuse what i did. i am asking what i should do as i cannot live with the fact i did this especially as i was already suicidal.i went out with friends and invited a friend i met on a dating app that i had known previously and was in town visiting, we got drunk and since she drove i told her she could stay at my place, prior to this night i had recently reconnected with friends after disappearing for months during a mental health episode and things looked up for once.this is where i completely fuck up and i cannot believe i did this. after drinking with some friends at my place we cuddle and put on a movie, we were all over each the entire night prior to being drunk too, she specifically told me she did not want to have sex because she was going through a lot and recently attempted, i genuinely wanted to respect that and not make her uncomfortable so at this time i accepted nothing would happen although i did hope in the back of my head something would. we were cuddling and she told me she would take off her shirt because it was hot, i told her i understand and that i did not want to make her do anything she did not want to (although in the end i did). she then said that that makes her want to do it more (have sex) and i insisted i did not want to make her do anything she is uncomfortable with i should have stopped everything here in retrospect but given i was also intoxicated but its not an excuse. she layed on me and i played with her chest we then told each other some pretty vulnerable stuff like how i am a virgin.she said things like i cannot believe someone as handsome and amazing as you has not been with anyone etc. i told her i have a lot of trauma that made me shy around girls. i am not entirely sure what happened next but we made out a little and she ended up laying over my legs on her stomach i assumed she wanted to watch the movie. i began touching her more aggressively and took off her underwear the entire time i did not realize she was passed out asleep i thought she may have closed her eyes because as i touched her more intimately (but never putting anything inside her) she started to breath heavier. in hindsight should have not took this as consent. i stopped to get up, and saw her eyes were closed so i put a blanket over her it still did not click what i had done.she then asked a couple seconds after tucking her in why she had no underwear. i immediately realized what i had done was not consensual i started to apologize the best i could while intoxicated. but she was still half asleep. after apologizing profusely and waking her up she became very empathetic telling me that it was okay and she will not tell anyone and that i did not know she was asleep. i tried to tell her that it does not matter what i did was fucked up but somehow ended up with her embracing me and encouraging me to talk about the trauma i mentioned to her earlier so i did it was weirdly therapeutic and i was so confused because i just did something horrible to her.she ended up sobering up and to my protest she drove and i bought her food and told her how sorry i was agin and if there was anything i can do let me know before she dropped me back at my place. i stupidly texted her after not sleeping at all that she should let me take her on a proper date because she said she wanted to see each other before she left town i know i am a stupid idiot but i texted her that, she obviously declined and i knew she felt differently than when it initially what happened as she was probably sobering up and processing what happened.i told her i understand and that it was selfish of me to ask. she then sent me a longer text later in the day and it was that she felt violated and that i took advantage of her which i absolutely did. despite that she told me that she genuinely thinks i am a good friend and hopes i thrive one day and get help but that she has to block me for her own mental health. i replied with a really long apology that i hope was sincere and understanding but it did not go through as i was expecting.i am not sure what to do now i have been a mess the entire day, i feel so fucking horrible for what i did its eating me alive. i was already pretty suicidal and had a really bad view on myself but i am not sure how i can move forward from this as i feel i do not deserve to. i did something i cannot forgive myself for and ibe already been suicidal for a while. nsfw"
+
+**Ground Truth Label:** `suicidal`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `depression` | ❌ |
+| Bi-LSTM | `depression` | ❌ |
+| BERT    | `suicidal` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 11,
+  "ground_truth": "suicidal",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #12
+
+**Text to evaluate:**
+"i am in a really bad depressive slump and i cannot communicate what is actually wrong. i am so sensitive and disconnected and i just feel like my partner is going to get tired of trying to help me and just leave me. i would not blame him either my mental health is going to end my relationship"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `depression` | ✅ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 12,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #13
+
+**Text to evaluate:**
+"i am so fucking fed up with everything.i have been depressed for 5 years now. i have tried everything, therapy, medication, acupuncture, chinese medicine or whatever it is. everything. i am so done. my boyfriend fucking left me a couple months ago, i do not have any friends anymore and my family is tired of all my problems. i am just done honestly, i have been fighting this bullshit for 5 fucking years and i am so fucking tired of it. i am crying as i am typing this and i just took some lorazepam to calm down. i have autism as well and a whole list of other issues that i am dealing with every fucking day. i just called the emergency services and this dude i had on the phone did not even listen to me so i am feeling fucking terrible. i am so suicidal and it takes every single bit of strength that i have left in me not to fucking kill myself right now, because honestly, i do not see the point in keeping going. its the same stuff every day and i am just tired of it all. i guess that was my rant.bye. i am done"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `suicidal` | ❌ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 13,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #14
+
+**Text to evaluate:**
+"i managed to do something for once, i took a waveboard and started practicing on a very steep road and obviously i fell off and rolled for a meter or soi'm disappointed by how little blood came out but at least i felt something after i do not know how many years feels good to feel something"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `normal` | ❌ |
+| Bi-LSTM | `anxiety` | ❌ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 14,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #15
+
+**Text to evaluate:**
+"just as the title suggests, i am feeling really numb, especially today. i am not sure what is left in me. i am going to be sleeping today away losing any hope i got left"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `normal` | ❌ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 15,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #16
+
+**Text to evaluate:**
+"i am having panic attacks since this morning, i do not how i am going to handle this. abandoned, medication does not work and feeling very suicidal"
+
+**Ground Truth Label:** `suicidal`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `depression` | ❌ |
+| Bi-LSTM | `depression` | ❌ |
+| BERT    | `suicidal` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 16,
+  "ground_truth": "suicidal",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #17
+
+**Text to evaluate:**
+"new to the community/diagnosis hey all,
+i was just diagnosed with avpd yesterday (along with some other things), and to be honest, i still feel a little shell shocked. i'm still learning more about the diagnoses obviously, but i wanted to ask what tips or lessons the community has for a newbie like me. what do you wish you knew when you were first diagnosed? i've been working on overhauling my brain for a few years, and i want to avoid falling into a trap where i just give up before i can fail (as it is my tendency to do)."
+
+**Ground Truth Label:** `personality disorder`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `normal` | ❌ |
+| Bi-LSTM | `depression` | ❌ |
+| BERT    | `personality disorder` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 17,
+  "ground_truth": "personality disorder",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #18
+
+**Text to evaluate:**
+"we re back after spring break during st period i had a panic attack and had to leave i feel defeated like i might a well not go back didn t put on a big show or anything just random stage fright out of nowhere going back tomorrow and wondering if the same thing will happen i knew i wa having a panic attack but didn t try to work through embrace it going to try harder tomorrow just feel like a loser that i couldn t handle it today very unprofessional"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `normal` | ❌ |
+| Bi-LSTM | `depression` | ✅ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 18,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #19
+
+**Text to evaluate:**
+"i am sorry to make you feel bad but i am overwhelmed and probably will end my life .let us talk about me: i am an 18y/o guy who is depressed and anxious since the age of 14 when i started noticing i was around quite nobody.i always had few friends but in the last 4 years things get worse. i do not know if its adolescence or something like that , but i am aware that i am worthless and nobody likes me (even my brother) . my only luck is that i always had pets and luckily i have a strong bond with them because i am a very sensitive and sweet person , maybe is for this reason that i always had problems with my peers at school . since october 2020 i put myself a goal : getting a girlfriend within december 2021 . so during this period of time i tried hard getting a girlfriend fighting my shyness , but i keep getting rejections and fails, and this for my already low self-esteem is enough . also be alone without my will is hard to accept. so i arrived at the conclusion that it is not worth keep living in this way and want to commit suicide but i cannot because my mom would get for sure ptsd that will end up with her suicide.so i am asking for your help because i think you are my last resort . therapy is not working and also taking sertraline is useless to me , i count on you i need your help"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `suicidal` | ❌ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 19,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #20
+
+**Text to evaluate:**
+"i have been rejected and dumped do many times and it does not hurt anymore it just fuels me to succeed which sounds good at first but it only fuels me so i can show the people that have hurt me that they are like missing out and i fucking hate it but love it at the same time i hate how fucked it is but love how it motivates me to do what i want to spite those who hurt me i know this does not really belong here but if anyone knows why this happens like a mental illness please tell me i need help"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `depression` | ✅ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 20,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #21
+
+**Text to evaluate:**
+"cut my wrist and black my eyes"
+
+**Ground Truth Label:** `suicidal`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `normal` | ❌ |
+| Bi-LSTM | `suicidal` | ✅ |
+| BERT    | `suicidal` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 21,
+  "ground_truth": "suicidal",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #22
+
+**Text to evaluate:**
+"at this point what is the reason to live. i cannot make anyone happy in my life not even myself. this feeling has been lingering with me since i was in highschool 14m now 19m. i just do not know what to do with myself. it just feels like i am just living for other people so... what is the point in staying here just suffering. i do not want to be here anymore. i just feel like i fail everyone i meet. the point"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `depression` | ✅ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 22,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #23
+
+**Text to evaluate:**
+"i know i am not alone but i seriously do not know what to do anymore. i will not be able live like this for much longer. nothing brings me joy, i have no hobbies and have no desire to pick new ones up. i have tried to force myself to do *anything* and i just get angry and frustrated. even my last few safe hobbies are now boring. i do not want to go to the gym, or read a book, or go for a walk, or write, or draw. i am so mind numbingly bored that i feel like a caged animal. i sit in my room and scratch and rub at my skin, hit head and legs, roll around on my bed as if i am in agony. i feel like i am going insane, and if this carries on i will go insane. i just want this to end but i do not even have the balls to kill myself. one minute i want to cry and the next i want to smash my head so hard against a wall that it fractures me skull. what the fuck do i even do now. i cannot do this anymore. absolutely nothing brings me enjoyment anymore. i have no hobbies, nor do i want to i begin scratching at myself and hitting myself and rolling around like i am possessed. i am so mind numbingly bored i am so bored i feel like a caged animal, i just want to die. i cannot live like this."
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `depression` | ✅ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 23,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #24
+
+**Text to evaluate:**
+"title says it really , i tried to od just under a month ago , and now whenever i need to take a tablet or a pill i get this really weird , shadowy feeling on me like something is going to happen.anyone had something similar or know how to overcome it? after a failed overdose , whenever i take pills i feel really weird?"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `depression` | ✅ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 24,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #25
+
+**Text to evaluate:**
+"i just realized i did not thought of it today at all. i always were a lonely person because of my father's job. i never tried so hard to keep friends because i would always lose touch and that hurts. i cannot believe in any religious bullshit, so besides my family i always felt empty. the lack of challenges in my childhood did not help either. i always were the gifted child that can do it all. i realized that i was bored of doing anything in my life for the first time when i realized i could choose any path and i would have success without trying harder. so i decided to do something that would requiring a physical test because i were fat at the time. i got ripped and nailed the test. so i decided to abandon that path and i went to a engineering course because it was a child dream. in college i met the best think that ever happened to me. my ex girlfriend. nothing in my life had given such joy. i tried to avoid her for almost a year because i knew my broken mind would lead to one us with a broken heart. i could not resist. we dated from to 2016 until march this year. i wish he had started it later with me with a better mind. the truth is that i failed with her, i have never shown the affection that she needed. she needs someone that is able to take care of her. i will always blame myself for not standing up for her in a stupid fight with some former friends. i tried to keep the status quo because i thought it would bring her peace. if i had taken a sec to think about it i would have realized that it that the status quo were gone. i failed when she needed me the most, like always. eventually, her love for me fadded away. i tried o be by her side when all our friends turned away. that was not enough, in a dream vacation with her in february last year i discovered that she was cheating on me. my life shattered. i had been with other girls before her, but like everything in my life nothing that were so special. so since that day i have been surfing in the idea of killing myself. sometimes it went higher and i almost did it. for months i could not even confront her because that was so off character that i tried to convince myself that could not be real. eventually i talked to her. we tried for some months, but i think she did not love me anymore and i was to broken to do anything healthy. i had way to many panic attacks since then. eventually i read in a secret diary of hers that she started cheating on me again. i did nothing. at this point i only blame myself. the guilty is a burden that never leaves. and then i read that she was trying to break up but could not do it. so i did it for her. i almost killed myself multiple times after that. i reached old friends because i was completely lost. it went out as good idea. 2 of them have been really good friends and very supportive. one bringing me out of my house and making me do something fun to distract me. the other one had 2 friends that committed suicide before, so she ended up been very thoughtful and comprehensive. then my ex reached me with her problems out of nowhere. at first i was happy because i always enjoyed been useful to her. the problem is that i care too much about her problems and seen her like that made me go in a crazy spiral. i exploded when she lied to me. she is a terrible at this. lies were always a trigger to me. i do not even know why she would need to lie. you do not to need to pretend that you already had maked out with some random stranger, we are not strangers anymore. and the she snap out at me because i had contact with here nemesis from the fight i mentioned before. i did not need you to do that, i was already guilty. the truth is i would have been with hitler, stalin and satan in that state of mind just to feel company. then i decided to visit my parentes and one of the friends that i mentioned before (they live in the same city). seen my parents together restored my faith that something like that is possible. i do not know how because i feel sometimes that i am too broke for a relationship. seen that friend made me feel comfortable, like someone outside my family cares about me. that made my bad feelings about my ex dissipate. and i decided to talk to her. i offered something that she always wanted. i do care about her. but i need to know that she is 100% on board. given her that would bring me peace and all the guilty that i have will go.this history did not end yet. of course i am doing therapy. i am still trying to find a purpose in the emptiness of the universe. but today i do not feel like i have to commit suicide. at least for today i was able to let some of the ghosts that haunts me go. sorry for the grammar or anything. english is not my first language and i am writing this out of a lot of emotion. first day i did not have suicidal thoughts since february of last year"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `suicidal` | ❌ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 25,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #26
+
+**Text to evaluate:**
+"i am honestly not really sure where to ask this but i am very confused by who i am supposed to confide in and for what.i am finding that my meds for depression are not working and my doctor said i should see a psychiatrist but then when i tried getting a referral to a psychiatrist they said my doctor should be managing my meds? my doctor also said he suspects that i have cptsd so should i see a psychiatrist to get diagnosed? will that help me?one thing i do know is i need a therapist so i am in search of one but i am so confused about everything else because even medical professionals are giving me mixed responses. thank you. psychiatrist, psychologist or gp?"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `bipolar` | ❌ |
+| Bi-LSTM | `bipolar` | ❌ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 26,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #27
+
+**Text to evaluate:**
+"i do not have any energy left, waking up from bed feel like a chore. i am an emotional mess nowadays, crying at times and other time, i just feel numb. i just lost my appetite. i always wanted to be a doctor, but i did not got a medical seat in the entrance exam, so i joined the engineering college which i never liked in the first place, but i did not wanted to waste another year in repeating the medical entrance, so i joined the engineering course. i never got along with my teachers, as i was a student who came to the college via intercollege transfer from another engineering college, they never paid attention to me or helped me in the subjects. at the final year seminar, they purposely cut short my internal marks in that seminar. i had enough of that, they had already caused enough hurdles to me in those 3 years i had been there. i decided to not pursue that course. my 4 years of my life has been wasted. i sat another 3 years doing nothing. i was already depressed about not being completing the engineering course. i spend the next 3 years mourning about it. i sometimes feel like to try again for medical entrance one last time, but i do not have any energy left as i see my school friends has achieved a degree as well as a job in all these years and i am at the bottom trying to reach somewhere in life. also, a lot of friends had been married or engaged and here i am 26 and reached nowhere. i feel like a utter failure. sometimes, i feel like if i get a medical seat, by the time i complete it, i would be a 32 year old and who would marry a 32 year old woman in a conservative country, unless a divorcee or a widower with kids. on, the other hand my mom, is pushing me to get married and looking for grooms in matrimonial website for me, as i am ancient according to her as i am 26. even, when i told her a thousand times that i am not mentally prepared to get married nor i like to live with in-laws she never listen to me. it makes me more depressed than i am already is. i always pray that i just die in my sleep and never wake up the next day. the only reason, i am not committing a suicide is because i do not want to be born again in this earth if reincarnation exist as i had cut short my life by suicide, then i will be born again to complete the remaining time i would have been alive in past life in the reincarnated life or if a life after death exists and i will not be allowed to meet my loved ones on the other side because i took my own life. i did not believe in things like this, but i came across a youtube channel called matt fraser a psychic medium and whatever i had learned from watching it is this that life after death exist and i do not want to take chances to not meeting my loved ones on the other side that is the only reason i am not taking my life. i feel dead inside. i feel dead inside"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `suicidal` | ❌ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 27,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #28
+
+**Text to evaluate:**
+"maybe you get that temporary relief but it all comes back again opening up does not really help"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `normal` | ❌ |
+| Bi-LSTM | `normal` | ❌ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 28,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #29
+
+**Text to evaluate:**
+"i work to "save money for college" but i intend on dying before i go to college. i work for basically inherent reason, but i am still pressed to go because everyone else insists that i am going to end up not killing myself. if i was born rich i would at least get to spend my final weeks alive in peace instead of having to waste hours of my life to win a piece of paper i cannot do anything with. every morning i dread having to work, and consider crashing my car into something just to avoid having to go. the only things keeping me alive currently are fear of death and the desire to do things i enjoy doing one more time before i die. my only hopes left are that i either somehow get killed suddenly by something, anything at all, which would circumvent the need to do it myself, or that i win the lottery and gain an excuse to quit my job and live out my final days the way i wish.it seems so stupid, right? that humanity has locked itself in this cage of misery and then purposely made the only key, suicide, as hard as possible to obtain for most people. its like the collective mass of humans would rather see every individual member of the species suffer than allow even a single one of us to escape. we all have to die at some point, but for some reason choosing that point for yourself instead of having your last shreds of life savagely beaten out of you by disease and age is seen as wrong and something that needs to be corrected.no one has the right to force me to keep living. it feels as though no one would be selfish enough to demand that i keep feeling this endless pain because it is convenient for them, but that is what those around me do. "but if you hang yourself, someone will have to find your body!" they say, as if someone witnessing my lifeless corpse and then telling the police to come cut me down could ever compare to the agony of existence. "if you jump off a building, someone below could get hurt!" they say, as if they have not just denied me many easier forms of ending my existence. if anyone causes a bystander of my death to be hurt, it will be whatever cruel architect, whether it be fate or god or man itself, constructed this tyranny in the first place. seeing someone free themselves from life should be a happy thing, as it is proof that we have the truest form of free will, the real right to choose not felt by any other form of life on earth. the right to deny every controlling force that attempts to shape our lives and to tell the world that i refuse the grand plan set out by whatever cosmic force brought me into existence in the first place. not only do i refuse this plan, i abhor it as a plan wrought with cruelty.there is no reason for this, and that is what frustrates me the most. there is no reason, whether based on emotion, spirituality, or science, that i should be pressed to continue with my life aside from the fact that it is convenient to those around me if i live, and an inconvenience if i were to die.just let it end. just let me end. this pointlessness needs to stop. there has not been a point, there is not a point, and there will not be a point. meaninglessness"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `suicidal` | ❌ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 29,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #30
+
+**Text to evaluate:**
+"when i think about suicide and leaving my family without me i do not feel much. when i think of leaving my dog i get sad and teary. a dog really is a man's beat friend huh i love my dog more than my family combined"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `suicidal` | ❌ |
+| BERT    | `depression` | ✅ |
+
+**Selection Reason:** Tier1 Svm Wrong Bert Right
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 30,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #31
+
+**Text to evaluate:**
+"my head is killing me. i have two emotions, sadness and anger. if i do not feel sad and angry i feel empty. i remember once when i felt something different, i am not even sure what it was but it was so weird and strange, it did not last long though. i do not know why my emotions are like this, right now i am sad. i do remember having happy moments in my life but i just cannot feel that emotion anymore. i am so confused all the time about what is wrong with me. i wish dying was fucking easier. i want to go so bad"
+
+**Ground Truth Label:** `suicidal`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `depression` | ❌ |
+| Bi-LSTM | `depression` | ❌ |
+| BERT    | `depression` | ❌ |
+
+**Selection Reason:** Tier2 All Models Wrong
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 31,
+  "ground_truth": "suicidal",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #32
+
+**Text to evaluate:**
+"it is 5am... no reason to get up before noon. no job. need one but do not want one. almost 23 years old. still a virgin and have never been in a relationship. came close a few times but got used and thrown away. hate my hometown and want to move and start a new life. nothing to do and nowhere to go. lost passion for most of my hobbies outside of video games. do not really have friends. comically dry phone. tried talking to an old friend that i am mildly in love with and she could not be bothered. why bother. i would like to die"
+
+**Ground Truth Label:** `suicidal`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `depression` | ❌ |
+| Bi-LSTM | `depression` | ❌ |
+| BERT    | `normal` | ❌ |
+
+**Selection Reason:** Tier2 All Models Wrong
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 32,
+  "ground_truth": "suicidal",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #33
+
+**Text to evaluate:**
+"i just fail to find motivation for anything. zero motivation to study, zero motivation to find a job, even zero motivation to do the things i used to find fun. i do not have motivation to keep myself alive any longer and i do not even know where to start in order to fix myself am i broken inside?"
+
+**Ground Truth Label:** `suicidal`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `depression` | ❌ |
+| Bi-LSTM | `depression` | ❌ |
+| BERT    | `depression` | ❌ |
+
+**Selection Reason:** Tier2 All Models Wrong
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 33,
+  "ground_truth": "suicidal",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #34
+
+**Text to evaluate:**
+"not like a illness or something i wish, but i can tell that one of these next final yeet attempts are going to work, its not like people will miss me, even my family and friends tell me to kms, no one asks how i am doing and i am stuck just leaving my arms in enchanting table language and drinking till i cannot stand, anyway hope all of you weather you read this or not have a great day. or better than the new normal we set for ourselves in this degrading reality anyway toodles:) i am going to die soon."
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `suicidal` | ❌ |
+| BERT    | `suicidal` | ❌ |
+
+**Selection Reason:** Tier2 All Models Wrong
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 34,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #35
+
+**Text to evaluate:**
+"this is your chance to explore the depths of their thoughts, emotions and reactions to their situation.
+
+as i sit at my desk, my heart beats rhythmically against my chest. the silence in the office building feels heavy, suffocating. i glance around at my coworkers, their faces a blur of activity as they focus intently on their tasks. it's almost like i'm watching a documentary, disconnected from the very world around me. but it's not just the environment that feels unfamiliar, it's my own mind, too.
+
+a million thoughts race through my consciousness, each vying for my attention. "you're not good enough," "what if i fail?"
+
+**Ground Truth Label:** `stress`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `anxiety` | ❌ |
+| Bi-LSTM | `personality disorder` | ❌ |
+| BERT    | `anxiety` | ❌ |
+
+**Selection Reason:** Tier2 All Models Wrong
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 35,
+  "ground_truth": "stress",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #36
+
+**Text to evaluate:**
+"shortly after anxiety set in. not a totally unfamiliar feeling but there wasn't any clear indication as to why i was feeling this way. let me explain why i can't go over the fact that this feels different this time. 2 usually there is one thing single thing that triggers my anxiety."
+
+**Ground Truth Label:** `stress`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `anxiety` | ❌ |
+| Bi-LSTM | `anxiety` | ❌ |
+| BERT    | `anxiety` | ❌ |
+
+**Selection Reason:** Tier2 All Models Wrong
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 36,
+  "ground_truth": "stress",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #37
+
+**Text to evaluate:**
+"anybody up and willing to chat, i could use it right now any body still awake?"
+
+**Ground Truth Label:** `suicidal`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `normal` | ❌ |
+| Bi-LSTM | `normal` | ❌ |
+| BERT    | `normal` | ❌ |
+
+**Selection Reason:** Tier2 All Models Wrong
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 37,
+  "ground_truth": "suicidal",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #38
+
+**Text to evaluate:**
+"i am just overwhelmed by the sheer chaos of the world around me, last week after work i had a gun pointed at me by some kid in a lifted truck and everyone just sort of shrugged it off the very next day... i cannot stop thinking about it though.i knew this was always a possibility, literally anyone could decided to shoot you or kill you randomly if they wanted to, and there is nothing you can really do to stop it - but when you honestly think someone is about to end your life abruptly you realise just how terrifying that is. and for everyone to just play it off like its normal  for someone to aim a fucking gun at you?i have been too scared to go anywhere but home and work since then, even stopping at a gas station is a daunting experience. everyone around me seems to think my fears are becoming irrational and that i should just forget about it because "it could happen any day" as if that is supposed to be comforting?i do not think i want to live in that world, and if i am going out i want it to be on my terms. life in general is just too much for me."
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `suicidal` | ❌ |
+| BERT    | `normal` | ❌ |
+
+**Selection Reason:** Tier2 All Models Wrong
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 38,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #39
+
+**Text to evaluate:**
+"given up on life, every day is the same shit i do not have many friends or ever had a relationship but i am 26 now and the boat of having a relationship has probably sailed for me now. i am just waiting to die and tbh really looking forward to it. i am just waiting to die"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `suicidal` | ❌ |
+| BERT    | `suicidal` | ❌ |
+
+**Selection Reason:** Tier2 All Models Wrong
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 39,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #40
+
+**Text to evaluate:**
+"i know i am not the best person in the world i forget things and i put things off i know. but the simple "can you do this rn?" would be great instead of saying i do not do shit in the house and i am a bitch but thanks mom love you too i have not had a poper conversation with her since i was fucking 10. i just wanted a mom not a narcissistic bitch who has been pushing me to the breaking point.i want this to end but it feels like there is no escape but i guess that is the price i pay for being born.thanks need to just talk"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ❌ |
+| Bi-LSTM | `suicidal` | ❌ |
+| BERT    | `suicidal` | ❌ |
+
+**Selection Reason:** Tier2 All Models Wrong
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 40,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #41
+
+**Text to evaluate:**
+"i wish i knew how to start this post. i am a, a 33 year old cis, white, married man. i live in one of the richest countries in the world. i eat everyday, i sleep indoors, i am employed, and i love my wife. despite all this, for most of my life and especially the last few months, all i want is to die.i have tried therapy and medication and i still feel like there is no meaning to my life and that the people i care about truly would benefit from not having to deal with me. i have gone no contact with my family for the last two years, i have been ghosting my friends for the last 7 months because ultimately, i know what is coming and i do not think i can stop it.i am just so tired and empty now that i do not know how to keep going and i do not really even want to anymore. i am tired of pretending i am fine and breaking down when i am alone. i am tired of trying to find the motivation for errands and chores and hobbies and friends and living.i guess i am here as a last ditch chance. counseling, friends, and family have not been able to 'fix' me, maybe some stranger on the internet will have the words. no pressure, reader. i walked myself to the edge; you are just the deep breath before the fall. i feel like i am finally at the bottom"
+
+**Ground Truth Label:** `suicidal`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `depression` | ❌ |
+| Bi-LSTM | `depression` | ❌ |
+| BERT    | `depression` | ❌ |
+
+**Selection Reason:** Tier2 All Models Wrong
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 41,
+  "ground_truth": "suicidal",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #42
+
+**Text to evaluate:**
+"its so weird how emotions can make you want to hurl. i feel so fucking sick"
+
+**Ground Truth Label:** `suicidal`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `depression` | ❌ |
+| Bi-LSTM | `depression` | ❌ |
+| BERT    | `normal` | ❌ |
+
+**Selection Reason:** Tier2 All Models Wrong
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 42,
+  "ground_truth": "suicidal",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #43
+
+**Text to evaluate:**
+"i am starting to make my driving license now. after i passed i will start to have some good months cruising around. if life still sucks then i am planning to crash a tree.fuck my jobfuck my anxietiesfuck society and money driving license"
+
+**Ground Truth Label:** `suicidal`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `normal` | ❌ |
+| Bi-LSTM | `normal` | ❌ |
+| BERT    | `suicidal` | ✅ |
+
+**Selection Reason:** Tier3 Critical Class
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 43,
+  "ground_truth": "suicidal",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #44
+
+**Text to evaluate:**
+"i am going to my best friend's place tomorrow all the way in idaho where i am in california and its been 2 years since i have seen him i was going to last year but quarantine happened and it got cancelled so i am worried that i am not the me he used to like and he will not want to be friends i have known him since the first grade and he has been my best friend ever since so i cannot lose him i am worried book of various worries"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `anxiety` | ❌ |
+| Bi-LSTM | `anxiety` | ❌ |
+| BERT    | `anxiety` | ❌ |
+
+**Selection Reason:** Tier3 Critical Class
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 44,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #45
+
+**Text to evaluate:**
+"does anyone here remember joy? know how to find it? i am so sick of feeling depleted and empty all the damn time. joy?"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `bipolar` | ❌ |
+| Bi-LSTM | `suicidal` | ❌ |
+| BERT    | `normal` | ❌ |
+
+**Selection Reason:** Tier3 Critical Class
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 45,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #46
+
+**Text to evaluate:**
+"i try to kill myself a couple of times now. people around me are so mean and heartless. i hate being here, but i do not have where to go. i do not want to be alive with them on this planet. i have been trough terrible things, and depression all by myself, now i am battling anxiety. i can' t believe some people are like that. i am so disappointed by this world and people. i do not want to be alive with mean people on this planet"
+
+**Ground Truth Label:** `suicidal`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `depression` | ❌ |
+| Bi-LSTM | `depression` | ❌ |
+| BERT    | `depression` | ❌ |
+
+**Selection Reason:** Tier3 Critical Class
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 46,
+  "ground_truth": "suicidal",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #47
+
+**Text to evaluate:**
+"i, i do not think ill be around till the end of tonight. if i am, cool. if i am not, i deserve it i guess. i deserve all of this. i cannot function as a member of this society, i cannot function as a good friend, a good student, or just a good person. its my fault that i cannot be good enough, that i will never be good enough. i am sorry mom. you really should have had a better child. a loving and caring daughter who could show you she loves you. not this bitter, resentful freak. ill always love you to bits and i wish i could tell you that. i am sorry maya. i am sorry everyone. i just could not do this anymore. i am also sorry to dan, for having to read this. i did not know how else to say goodbye without concerning anybody too fast. you have been the best friend i could never ask for. goodnight, world. i am out. -francis. well"
+
+**Ground Truth Label:** `suicidal`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `suicidal` | ✅ |
+| Bi-LSTM | `suicidal` | ✅ |
+| BERT    | `depression` | ❌ |
+
+**Selection Reason:** Tier3 Critical Class
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 47,
+  "ground_truth": "suicidal",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #48
+
+**Text to evaluate:**
+""I want to believe I'm strong, that I can handle the storms within, but sometimes I wonder if I'm just a ship without a compass, lost at sea.""
+
+**Ground Truth Label:** `personality disorder`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `personality disorder` | ✅ |
+| Bi-LSTM | `personality disorder` | ✅ |
+| BERT    | `bipolar` | ❌ |
+
+**Selection Reason:** Tier3 Critical Class
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 48,
+  "ground_truth": "personality disorder",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #49
+
+**Text to evaluate:**
+"would you spend the day normally?would you do something special? how would you spend your last day?"
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `normal` | ❌ |
+| Bi-LSTM | `depression` | ✅ |
+| BERT    | `normal` | ❌ |
+
+**Selection Reason:** Tier3 Critical Class
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 49,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
+
+---
+
+## Sample #50
+
+**Text to evaluate:**
+"i wish people were not allowed to lie. also, what is love? because i hear it often but i sure do not feel it. the people i thought were there for me, were not when i needed them the most. typical."
+
+**Ground Truth Label:** `depression`
+
+**Model Predictions:**
+| Model   | Prediction          | Correct? |
+|---------|---------------------|----------|
+| SVM     | `depression` | ✅ |
+| Bi-LSTM | `depression` | ✅ |
+| BERT    | `normal` | ❌ |
+
+**Selection Reason:** Tier3 Critical Class
+
+Please evaluate this sample and respond ONLY with the following JSON schema:
+
+```json
+{
+  "sample_id": 50,
+  "ground_truth": "depression",
+  "clinical_accuracy": {
+    "svm_score": <int 0-10>,
+    "lstm_score": <int 0-10>,
+    "bert_score": <int 0-10>
+  },
+  "linguistic_complexity": "<Low|Medium|High>",
+  "linguistic_features": ["<feature1>", "<feature2>"],
+  "missed_risk_severity": <int 0-10>,
+  "model_reasoning": "<2-3 sentences explaining WHY models succeeded or failed>",
+  "clinical_insight": "<1-2 sentences from a psychologist's perspective>",
+  "verdict": "<which model is most reliable for this sample and why>"
+}
+```
